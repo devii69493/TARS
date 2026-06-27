@@ -428,6 +428,86 @@ body {
 @keyframes blink    { 50% { opacity: 0; } }
 @keyframes fade-up  { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
+/* ── Audio gate (first-load unlock screen) ────────────────────────── */
+.audio-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.audio-gate-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 52px 60px;
+  border: 1px solid rgba(245, 166, 35, 0.18);
+  background: rgba(5, 5, 16, 0.97);
+  box-shadow: 0 0 80px rgba(245, 166, 35, 0.06), inset 0 0 60px rgba(245, 166, 35, 0.02);
+}
+
+.audio-gate-id {
+  font-size: 46px;
+  letter-spacing: 0.55em;
+  color: var(--amber);
+  text-shadow: 0 0 40px rgba(245, 166, 35, 0.55);
+}
+
+.audio-gate-sub {
+  font-size: 8px;
+  letter-spacing: 0.42em;
+  color: rgba(245, 166, 35, 0.38);
+}
+
+.audio-gate-rule {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245, 166, 35, 0.28), transparent);
+}
+
+.audio-gate-status {
+  font-size: 9px;
+  letter-spacing: 0.28em;
+  color: rgba(245, 166, 35, 0.32);
+  animation: blink 1.5s steps(1) infinite;
+}
+
+.audio-gate-btn {
+  margin-top: 6px;
+  background: none;
+  border: 1px solid rgba(245, 166, 35, 0.50);
+  color: var(--amber);
+  font-family: var(--font);
+  font-size: 11px;
+  letter-spacing: 0.38em;
+  padding: 15px 52px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: border-color 0.22s, box-shadow 0.22s, background 0.22s;
+  animation: gate-pulse 2.2s ease-in-out infinite;
+}
+.audio-gate-btn:hover {
+  background: rgba(245, 166, 35, 0.06);
+  border-color: var(--amber);
+  box-shadow: 0 0 32px rgba(245, 166, 35, 0.38);
+  animation: none;
+}
+
+.audio-gate-hint {
+  font-size: 7px;
+  letter-spacing: 0.18em;
+  color: rgba(245, 166, 35, 0.18);
+}
+
+@keyframes gate-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(245, 166, 35, 0.12); }
+  50%       { box-shadow: 0 0 24px rgba(245, 166, 35, 0.32); }
+}
+
 /* ── Narrow screens ───────────────────────────────────────────────── */
 @media (max-width: 700px) {
   .side-panel { width: 240px; }

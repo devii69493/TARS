@@ -1,0 +1,18 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# SPA: send all routes to index.html
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
+
+# Explicitly permit microphone + speaker for Speech Recognition/Synthesis.
+# Without this, Netlify's CDN edge nodes can inherit restrictive
+# Permissions-Policy values that silently block Web Speech APIs on HTTPS.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Permissions-Policy = "microphone=self, speaker-selection=self"
+    X-Frame-Options    = "DENY"

@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { HUDCanvas } from './components/HUDCanvas'
 import { SidePanel } from './components/SidePanel'
 import { useSpeechRecognition } from './hooks/useSpeechRecognition'
-import { useElevenLabsTTS } from './hooks/useElevenLabsTTS'
+import { useSpeechSynthesis } from './hooks/useSpeechSynthesis'
 import { useAIChat } from './hooks/useAIChat'
 import { getApiKey } from './lib/aiConfig'
 
@@ -24,7 +24,13 @@ export default function App() {
   const convModeRef = useRef(false)  // stable ref — safe to read inside async/timer callbacks
 
   const { sendMessage, error } = useAIChat({ honesty, apiKey })
-  const { speak, stop: stopSpeaking } = useElevenLabsTTS()
+  const [audioUnlocked, setAudioUnlocked] = useState(false)
+  const { speak, stop: stopSpeaking, unlock } = useSpeechSynthesis()
+
+  const handleUnlock = useCallback(() => {
+    unlock()
+    setAudioUnlocked(true)
+  }, [unlock])
 
   // Keep ref in sync so any closure always sees the current value
   useEffect(() => { convModeRef.current = convMode }, [convMode])
@@ -142,6 +148,21 @@ export default function App() {
 
   return (
     <div className="app">
+      {!audioUnlocked && (
+        <div className="audio-gate">
+          <div className="audio-gate-inner">
+            <div className="audio-gate-id">T·A·R·S</div>
+            <div className="audio-gate-sub">TACTICAL AUTONOMOUS RELAY SYSTEM</div>
+            <div className="audio-gate-rule" />
+            <div className="audio-gate-status">AWAITING OPERATOR AUTHORIZATION</div>
+            <button className="audio-gate-btn" onClick={handleUnlock}>
+              ▶ INITIALIZE UNIT
+            </button>
+            <div className="audio-gate-hint">click to enable audio</div>
+          </div>
+        </div>
+      )}
+
       <div className="scanline" aria-hidden="true" />
 
       <div className="hud-area">
