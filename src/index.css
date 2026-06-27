@@ -98,6 +98,39 @@ body {
   z-index: 10;
 }
 
+/* ── Listening state badge ────────────────────────────────────────── */
+.listen-badge {
+  font-size: 8px;
+  letter-spacing: 0.35em;
+  padding: 5px 14px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  min-width: 130px;
+  text-align: center;
+  white-space: nowrap;
+  transition: color 0.25s, border-color 0.25s, background 0.25s;
+  color: transparent;
+}
+.listen-badge--listening {
+  color: var(--amber);
+  border-color: rgba(245, 166, 35, 0.35);
+  background: rgba(245, 166, 35, 0.07);
+  animation: mic-pulse 1.1s ease-in-out infinite;
+}
+.listen-badge--processing {
+  color: rgba(245, 166, 35, 0.55);
+  border-color: rgba(245, 166, 35, 0.18);
+  animation: blink 0.75s steps(1) infinite;
+}
+.listen-badge--speaking {
+  color: rgba(245, 166, 35, 0.45);
+  border-color: rgba(245, 166, 35, 0.14);
+}
+.listen-badge--idle {
+  color: rgba(245, 166, 35, 0.22);
+  border-color: transparent;
+}
+
 .mic-btn {
   width: 58px;
   height: 58px;

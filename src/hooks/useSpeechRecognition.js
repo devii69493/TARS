@@ -3,21 +3,38 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 export function useSpeechRecognition({ onResult, onInterim, onNoSpeech }) {
   const [isListening, setIsListening] = useState(false)
   const [isSupported, setIsSupported] = useState(false)
-  const recognitionRef  = useRef(null)
-  const isListeningRef  = useRef(false)  // mirrors state but always current in callbacks
 
-  // Keep ref in sync whenever state changes
-  useEffect(() => { isListeningRef.current = isListening }, [isListening])
+  const recognitionRef = useRef(null)
+  const isListeningRef = useRef(false)
+
+  // Always-current callback refs — read inside event handlers so they never
+  // go stale even though the recognition instance persists across renders.
+  const onResultRef   = useRef(onResult)
+  const onInterimRef  = useRef(onInterim)
+  const onNoSpeechRef = useRef(onNoSpeech)
+  useEffect(() => {
+    onResultRef.current   = onResult
+    onInterimRef.current  = onInterim
+    onNoSpeechRef.current = onNoSpeech
+  })
+
+  useEffect(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (SR) setIsSupported(true)
+  }, [])
 
   const setListening = (val) => {
     isListeningRef.current = val
     setIsListening(val)
   }
 
-  useEffect(() => {
+  // Creates a fresh SpeechRecognition instance every call.
+  // Reusing a stopped instance causes Chrome to silently fail after a few
+  // start/stop cycles — the browser's internal state machine gets stuck.
+  const startListening = useCallback(() => {
+    if (isListeningRef.current) return
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SR) return
-    setIsSupported(true)
 
     const r = new SR()
     r.continuous      = false
@@ -33,42 +50,36 @@ export function useSpeechRecognition({ onResult, onInterim, onNoSpeech }) {
         if (e.results[i].isFinal) final   += t
         else                       interim += t
       }
-      if (interim) onInterim?.(interim)
-      if (final)   onResult?.(final.trim())
+      if (interim) onInterimRef.current?.(interim)
+      if (final)   onResultRef.current?.(final.trim())
     }
 
     r.onend = () => setListening(false)
 
     r.onerror = (e) => {
-      // 'aborted' means we called .stop() ourselves — not a real error, no retry needed
-      if (e.error !== 'aborted') {
-        if (e.error !== 'no-speech') console.error('Speech recognition error:', e.error)
-        // Treat every non-abort error (no-speech, network, audio-capture, etc.)
-        // the same way: let the caller decide whether to restart
-        onNoSpeech?.()
-      }
+      // 'aborted' means we called .stop() ourselves — ignore it.
+      if (e.error === 'aborted') return
+      if (e.error !== 'no-speech') console.error('Speech recognition error:', e.error)
       setListening(false)
+      onNoSpeechRef.current?.()
     }
 
     recognitionRef.current = r
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Stable identity — reads isListeningRef so no stale-closure issues
-  const startListening = useCallback(() => {
-    if (!recognitionRef.current || isListeningRef.current) return
     try {
-      recognitionRef.current.start()
+      r.start()
       setListening(true)
     } catch (err) {
       console.error('Recognition start failed:', err)
+      recognitionRef.current = null
     }
-  }, []) // intentionally empty deps — relies on isListeningRef
+  }, [])
 
   const stopListening = useCallback(() => {
     if (!recognitionRef.current || !isListeningRef.current) return
-    recognitionRef.current.stop()
+    try { recognitionRef.current.stop() } catch (_) {}
     setListening(false)
-  }, []) // intentionally empty deps — relies on isListeningRef
+  }, [])
 
   return { isListening, isSupported, startListening, stopListening }
 }

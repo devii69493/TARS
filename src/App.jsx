@@ -174,6 +174,13 @@ export default function App() {
         />
 
         <div className="mic-overlay">
+          <div className={`listen-badge listen-badge--${appState}`}>
+            {appState === 'listening'  ? '◉ LISTENING'    :
+             appState === 'processing' ? '◈ PROCESSING'   :
+             appState === 'speaking'   ? '◎ TRANSMITTING' :
+             convMode                  ? '◌ STANDBY'       : ''}
+          </div>
+
           {convMode ? (
             <button className="conv-btn conv-end" onClick={endConversation}>
               ■ END SESSION
