@@ -42,16 +42,18 @@ function drawGrid(ctx, W, H, cx, cy) {
 }
 
 // ── HUD telemetry text in corners ───────────────────────────────────────────
-function drawCornerText(ctx, W, H, honesty, convMode) {
+function drawCornerText(ctx, W, H, honesty, convMode, state) {
   const now = new Date()
   const utc = [now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds()]
     .map(v => String(v).padStart(2, '0')).join(':')
 
   ctx.font = '10px "Courier New", monospace'
 
+  const modeLabel = convMode ? 'CONV: ACTIVE' : state === 'standby' ? 'PASSIVE: ON' : 'GRV: NOMINAL'
+
   const readouts = [
     { x: 58,     y: 58,     a: 'left',  b: 'top',    lines: [`SYS: ONLINE`, `HNS: ${String(Math.round(honesty)).padStart(3, '0')}%`] },
-    { x: W - 58, y: 58,     a: 'right', b: 'top',    lines: [`UTC ${utc}`,   convMode ? 'CONV: ACTIVE' : 'GRV: NOMINAL'] },
+    { x: W - 58, y: 58,     a: 'right', b: 'top',    lines: [`UTC ${utc}`,   modeLabel] },
     { x: 58,     y: H - 58, a: 'left',  b: 'bottom', lines: [`ENDURANCE MK.IV`, `COOPER STATION`] },
     { x: W - 58, y: H - 58, a: 'right', b: 'bottom', lines: [`SECURE LINK`,     `TARS v1.0`] },
   ]
@@ -60,7 +62,6 @@ function drawCornerText(ctx, W, H, honesty, convMode) {
     ctx.textAlign    = a
     ctx.textBaseline = b
     lines.forEach((line, i) => {
-      // Highlight CONV: ACTIVE in brighter amber
       ctx.fillStyle = (convMode && line === 'CONV: ACTIVE') ? ag(0.85) : ag(0.38)
       ctx.fillText(line, x, y + (b === 'top' ? i * 16 : -(i * 16)))
     })
@@ -69,9 +70,12 @@ function drawCornerText(ctx, W, H, honesty, convMode) {
 
 // ── All concentric rings ─────────────────────────────────────────────────────
 function drawRings(ctx, cx, cy, R, t, state) {
-  const isActive = state === 'listening' || state === 'speaking'
-  const pulse    = isActive
+  const isActive  = state === 'listening' || state === 'speaking'
+  const isStandby = state === 'standby'
+  const pulse     = isActive
     ? 0.55 + 0.45 * Math.sin(t * (state === 'speaking' ? 5 : 2.5))
+    : isStandby
+    ? 0.18 + 0.12 * Math.sin(t * 0.55)   // slow dim breathing
     : 0.75
 
   // Outer radial glow halo
@@ -190,7 +194,14 @@ function drawWaveform(ctx, cx, cy, R, t, state, analyser) {
   const BAR_N    = 48
   const data     = new Float32Array(BAR_N)
 
-  if (state === 'listening' && analyser) {
+  if (state === 'standby') {
+    // Slow single-sine breathing pulse — calm, alive, waiting
+    const breathe = 0.5 + 0.5 * Math.sin(t * 0.55)
+    for (let i = 0; i < BAR_N; i++) {
+      const env  = Math.sin((i / BAR_N) * Math.PI)
+      data[i] = 0.04 * breathe * env + 0.01 * Math.sin(i * 0.4 + t * 0.3)
+    }
+  } else if (state === 'listening' && analyser) {
     const buf = new Uint8Array(analyser.frequencyBinCount)
     analyser.getByteFrequencyData(buf)
     for (let i = 0; i < BAR_N; i++) {
@@ -277,7 +288,8 @@ function drawCenter(ctx, cx, cy, R) {
 // ── Status text below ring ───────────────────────────────────────────────────
 function drawStatus(ctx, cx, cy, R, state, convMode) {
   const LABELS = {
-    idle:       convMode ? '◌ SESSION OPEN'      : '● STANDBY',
+    standby:    '⊙ PASSIVE LISTENING',
+    idle:       convMode ? '◌ SESSION OPEN'  : '● STANDBY',
     listening:             '◉ RECEIVING SIGNAL',
     processing:            '◈ PROCESSING',
     speaking:              '◎ TRANSMITTING',
@@ -290,8 +302,8 @@ function drawStatus(ctx, cx, cy, R, state, convMode) {
   ctx.textBaseline = 'top'
   ctx.font         = '12px "Courier New", monospace'
 
-  if (state !== 'idle') glow(ctx, 10)
-  ctx.fillStyle = ag(state === 'idle' ? 0.38 : 0.95)
+  if (state !== 'idle' && state !== 'standby') glow(ctx, 10)
+  ctx.fillStyle = ag(state === 'idle' || state === 'standby' ? 0.30 : 0.95)
   ctx.fillText(text, cx, y)
   noGlow(ctx)
 
@@ -387,7 +399,7 @@ export function HUDCanvas({ state, honesty, interimText = '', convMode = false }
       ctx.fillRect(0, 0, W, H)
 
       drawGrid(ctx, W, H, cx, cy)
-      drawCornerText(ctx, W, H, honesty, convMode)
+      drawCornerText(ctx, W, H, honesty, convMode, state)
       drawRings(ctx, cx, cy, R, t, state)
       drawWaveform(ctx, cx, cy, R, t, state, analyserRef.current)
       drawInterimText(ctx, cx, cy, R, interimText)

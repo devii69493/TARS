@@ -2,6 +2,20 @@
   command = "npm run build"
   publish = "dist"
 
+[functions]
+  directory = "netlify/functions"
+
+# API proxies (must come before SPA catch-all)
+[[redirects]]
+  from   = "/api/notion"
+  to     = "/.netlify/functions/notion"
+  status = 200
+
+[[redirects]]
+  from   = "/api/search"
+  to     = "/.netlify/functions/search"
+  status = 200
+
 # SPA: send all routes to index.html
 [[redirects]]
   from   = "/*"

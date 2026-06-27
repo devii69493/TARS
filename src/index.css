@@ -232,12 +232,80 @@ body {
 }
 .icon-btn:hover { color: var(--amber); }
 
+/* ── Settings panel ───────────────────────────────────────────────── */
+.settings-panel {
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.settings-section {
+  padding: 8px 13px;
+  border-bottom: 1px solid var(--border);
+}
+.settings-section--last { border-bottom: none; }
+.settings-label {
+  font-size: 7px;
+  letter-spacing: 0.25em;
+  color: rgba(245, 166, 35, 0.30);
+  margin-bottom: 6px;
+}
+.settings-hint {
+  font-size: 9px;
+  color: rgba(245, 166, 35, 0.25);
+  letter-spacing: 0.06em;
+}
+.settings-btn {
+  background: none;
+  border: 1px solid var(--amber-d);
+  color: var(--amber);
+  font-family: var(--font);
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  padding: 4px 9px;
+  cursor: pointer;
+  border-radius: 2px;
+  white-space: nowrap;
+  transition: background 0.18s;
+  flex-shrink: 0;
+}
+.settings-btn:hover { background: var(--amber-g); }
+.settings-btn--dim {
+  border-color: rgba(245, 166, 35, 0.14);
+  color: rgba(245, 166, 35, 0.45);
+}
+.settings-btn--dim:hover { border-color: var(--amber-d); color: var(--amber); }
+
+.profile-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.profile-status {
+  font-size: 9px;
+  color: rgba(245, 166, 35, 0.70);
+  letter-spacing: 0.08em;
+}
+.profile-hint {
+  font-size: 9px;
+  color: rgba(245, 166, 35, 0.28);
+  letter-spacing: 0.04em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.settings-error {
+  margin-top: 5px;
+  font-size: 9px;
+  color: var(--red);
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+}
+
 /* ── API key form ─────────────────────────────────────────────────── */
 .key-form {
   display: flex;
   gap: 6px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 .key-input {
