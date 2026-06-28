@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { HUDCanvas } from './components/HUDCanvas'
 import { SidePanel } from './components/SidePanel'
 import { useSpeechRecognition } from './hooks/useSpeechRecognition'
-import { useSpeechSynthesis } from './hooks/useSpeechSynthesis'
+import { useTTS } from './hooks/useTTS'
 import { useAIChat } from './hooks/useAIChat'
 import { useGoogleAuth } from './hooks/useGoogleAuth'
 import { useToolExecutor } from './hooks/useToolExecutor'
@@ -85,7 +85,7 @@ export default function App() {
 
   const { executeTools } = useToolExecutor()
   const { sendMessage, error } = useAIChat({ honesty, apiKey, profile, toolExecutor: executeTools })
-  const { speak, stop: stopSpeaking, unlock } = useSpeechSynthesis()
+  const { speak, stop: stopSpeaking, unlock, isElevenLabs } = useTTS()
 
   const handleUnlock = useCallback(() => {
     unlock()
@@ -283,6 +283,10 @@ export default function App() {
              appState === 'speaking'   ? '◎ TRANSMITTING'     :
              appState === 'standby'    ? '⊙ SAY "TARS" TO WAKE' : ''}
           </div>
+
+          {isElevenLabs && (
+            <div className="voice-active-badge">◈ ELEVENLABS VOICE</div>
+          )}
 
           {/* No START CONVERSATION button — wake words handle activation.
               END SESSION remains as a physical override. */}

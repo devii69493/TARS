@@ -131,6 +131,23 @@ body {
   border-color: transparent;
 }
 
+.voice-active-badge {
+  font-size: 8px;
+  letter-spacing: 0.3em;
+  padding: 4px 12px;
+  border: 1px solid rgba(245, 166, 35, 0.5);
+  border-radius: 2px;
+  color: var(--amber);
+  background: rgba(245, 166, 35, 0.08);
+  animation: voice-pulse 2s ease-in-out infinite;
+  white-space: nowrap;
+}
+
+@keyframes voice-pulse {
+  0%, 100% { opacity: 0.7; border-color: rgba(245, 166, 35, 0.35); }
+  50%       { opacity: 1.0; border-color: rgba(245, 166, 35, 0.75); }
+}
+
 .mic-btn {
   width: 58px;
   height: 58px;
