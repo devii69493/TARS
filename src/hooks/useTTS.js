@@ -6,7 +6,7 @@ const ELEVENLABS_ENABLED = true
 
 const EL_API_KEY  = import.meta.env.VITE_ELEVENLABS_API_KEY
 const EL_VOICE_ID = import.meta.env.VITE_ELEVENLABS_VOICE_ID
-const EL_MODEL    = 'eleven_turbo_v2_5'
+const EL_MODEL    = 'eleven_monolingual_v1'
 
 // ── Strip markdown before sending to ElevenLabs ────────────────────────────
 function stripMarkdown(text) {
@@ -50,11 +50,8 @@ export function useTTS() {
   const [isElevenLabs, setIsElevenLabs] = useState(false)
   const [voices,       setVoices]       = useState([])
 
-  // AudioContext is created once inside unlock() (a user gesture), so
-  // subsequent async audio plays don't hit the browser autoplay block.
-  const audioCtxRef = useRef(null)
-  const sourceRef   = useRef(null)  // current BufferSourceNode
-  const abortRef    = useRef(null)  // current fetch AbortController
+  const audioRef = useRef(null)   // current HTMLAudioElement (ElevenLabs)
+  const abortRef = useRef(null)   // current fetch AbortController
 
   // Web Speech voice list
   useEffect(() => {
@@ -65,33 +62,22 @@ export function useTTS() {
   }, [])
 
   // ── unlock() — must be called synchronously inside a user gesture ─────────
-  // Creates the AudioContext and primes Web Speech, both of which need a
-  // direct user activation to satisfy browser autoplay policies.
   const unlock = useCallback(() => {
-    // Web Speech primer
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel()
-      window.speechSynthesis.resume()
-      const primer = new SpeechSynthesisUtterance('.')
-      primer.volume = 0.01
-      primer.rate   = 10
-      window.speechSynthesis.speak(primer)
-      setTimeout(() => {
-        const v = window.speechSynthesis.getVoices()
-        if (v.length) setVoices(v)
-      }, 150)
-    }
-    // AudioContext unlock — creating + resuming here binds it to the gesture
-    // so later async .start() calls won't be blocked
-    if (!audioCtxRef.current) {
-      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)()
-    }
-    if (audioCtxRef.current.state === 'suspended') {
-      audioCtxRef.current.resume()
-    }
+    if (!window.speechSynthesis) return
+    window.speechSynthesis.cancel()
+    window.speechSynthesis.resume()
+    const primer = new SpeechSynthesisUtterance('.')
+    primer.volume = 0.01
+    primer.rate   = 10
+    window.speechSynthesis.speak(primer)
+    setTimeout(() => {
+      const v = window.speechSynthesis.getVoices()
+      if (v.length) setVoices(v)
+    }, 150)
   }, [])
 
-  // ── Web Speech Synthesis ───────────────────────────────────────────────────
+  // ── Web Speech Synthesis (fallback) ───────────────────────────────────────
+  // Preserves original rate/pitch/volume settings
   const speakWebSpeech = useCallback((text, onEnd) => {
     if (!window.speechSynthesis) { onEnd?.(); return }
     window.speechSynthesis.cancel()
@@ -130,28 +116,22 @@ export function useTTS() {
     }, 50)
   }, [voices])
 
-  // ── ElevenLabs via AudioContext ────────────────────────────────────────────
+  // ── ElevenLabs via blob URL + HTMLAudioElement ─────────────────────────────
   const speakElevenLabs = useCallback(async (text, onEnd) => {
     // Stop whatever is currently playing
     abortRef.current?.abort()
     abortRef.current = null
-    if (sourceRef.current) {
-      try { sourceRef.current.stop() } catch {}
-      sourceRef.current = null
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.onplay   = null
+      audioRef.current.onended  = null
+      audioRef.current.onerror  = null
+      audioRef.current = null
     }
-
-    const ac = audioCtxRef.current
-    if (!ac) {
-      // unlock() wasn't called before speak() — fall back gracefully
-      speakWebSpeech(text, onEnd)
-      return
-    }
-    if (ac.state === 'suspended') await ac.resume()
 
     const clean      = stripMarkdown(text)
     const controller = new AbortController()
     abortRef.current = controller
-    setIsSpeaking(true)
     setIsElevenLabs(true)
 
     try {
@@ -165,14 +145,9 @@ export function useTTS() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            text: clean,
+            text,
             model_id: EL_MODEL,
-            voice_settings: {
-              stability:         0.45,
-              similarity_boost:  0.80,
-              style:             0.0,
-              use_speaker_boost: true,
-            },
+            voice_settings: { stability: 0.4, similarity_boost: 0.8 },
           }),
         }
       )
@@ -182,24 +157,34 @@ export function useTTS() {
         throw new Error(`ElevenLabs ${res.status}: ${msg}`)
       }
 
-      const arrayBuffer = await res.arrayBuffer()
-      const audioBuffer = await ac.decodeAudioData(arrayBuffer)
+      const blob  = await res.blob()
+      const url   = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      audioRef.current = audio
 
-      const source  = ac.createBufferSource()
-      source.buffer = audioBuffer
-      source.connect(ac.destination)
-      sourceRef.current = source
+      // onplay / onended hook the waveform animation state
+      audio.onplay = () => setIsSpeaking(true)
 
-      source.onended = () => {
-        sourceRef.current = null
+      audio.onended = () => {
+        URL.revokeObjectURL(url)
+        audioRef.current = null
         setIsSpeaking(false)
         setIsElevenLabs(false)
         onEnd?.()
       }
-      source.start(0)
+
+      audio.onerror = () => {
+        URL.revokeObjectURL(url)
+        audioRef.current = null
+        setIsElevenLabs(false)
+        console.warn('[TARS] ElevenLabs audio playback failed, falling back to Web Speech')
+        speakWebSpeech(text, onEnd)
+      }
+
+      await audio.play()
     } catch (err) {
       if (err.name === 'AbortError') {
-        // Intentional stop — don't fire onEnd
+        // Intentional stop — don't fire onEnd or fall back
         setIsSpeaking(false)
         setIsElevenLabs(false)
         return
@@ -221,9 +206,12 @@ export function useTTS() {
   const stop = useCallback(() => {
     abortRef.current?.abort()
     abortRef.current = null
-    if (sourceRef.current) {
-      try { sourceRef.current.stop() } catch {}
-      sourceRef.current = null
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.onplay   = null
+      audioRef.current.onended  = null
+      audioRef.current.onerror  = null
+      audioRef.current = null
     }
     window.speechSynthesis?.cancel()
     setIsSpeaking(false)
