@@ -128,11 +128,6 @@ export function SidePanel({
             )}
           </div>
 
-          {/* Notion status */}
-          <div className="settings-section settings-section--last">
-            <div className="settings-label">NOTION</div>
-            <div className="settings-hint">Set NOTION_API_KEY in Netlify env vars, then share pages with your integration</div>
-          </div>
 
         </div>
       )}

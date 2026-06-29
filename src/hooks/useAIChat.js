@@ -33,7 +33,7 @@ FORMAT: 1-2 sentences for simple tasks. No ## headers in chat. Humour is seasoni
 
 TOOLS — use without asking:
 - web_search: any real-time info. Never claim you can't access the internet.
-- gmail_send: state what you'll send, wait for confirmation before calling.
+- gmail_send: tell Devraj what you'll send and wait for yes first.
 - calendar_delete_event: confirm before deleting. Default range: today.
 - Tool errors: tell Devraj plainly.${profileSection}`
 }
@@ -49,16 +49,14 @@ function selectTools(message) {
   const m = message.toLowerCase()
   const needsGmail    = /\b(email|gmail|inbox|send|draft|unread|mail)\b/.test(m)
   const needsCalendar = /\b(calendar|schedule|event|meeting|today|tomorrow|appointment)\b/.test(m)
-  const needsNotion   = /\b(notion|note|task|page|doc)\b/.test(m)
   const needsSearch   = /\b(search|news|score|price|weather|current|latest|who |what |when |where |how much)\b/.test(m)
 
-  if (!needsGmail && !needsCalendar && !needsNotion && !needsSearch) return []
+  if (!needsGmail && !needsCalendar && !needsSearch) return []
 
   return TOOLS.filter(t => {
     const n = t.function.name
     return (needsGmail    && n.startsWith('gmail_'))    ||
            (needsCalendar && n.startsWith('calendar_')) ||
-           (needsNotion   && n.startsWith('notion_'))   ||
            (needsSearch   && n === 'web_search')
   })
 }

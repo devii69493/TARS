@@ -1,6 +1,5 @@
 import { listUnread, searchEmails, getEmail, sendEmail, createDraft } from '../lib/gmailApi'
 import { listEvents, createEvent, updateEvent, deleteEvent } from '../lib/calendarApi'
-import { searchNotion, getNotionPage, createNotionPage, appendToNotionPage } from '../lib/notionApi'
 import { webSearch } from '../lib/searchApi'
 
 // ── Date resolver ──────────────────────────────────────────────────────────
@@ -154,20 +153,6 @@ export function useToolExecutor() {
           // Web Search
           case 'web_search':
             result = await webSearch(args.query)
-            break
-
-          // Notion
-          case 'notion_search':
-            result = await searchNotion(args.query)
-            break
-          case 'notion_get_page':
-            result = await getNotionPage(args.pageId)
-            break
-          case 'notion_create_page':
-            result = await createNotionPage(args.parentId, args.title, args.content)
-            break
-          case 'notion_append_to_page':
-            result = await appendToNotionPage(args.pageId, args.content)
             break
 
           default:

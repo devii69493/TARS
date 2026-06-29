@@ -7,11 +7,6 @@
 
 # API proxies (must come before SPA catch-all)
 [[redirects]]
-  from   = "/api/notion"
-  to     = "/.netlify/functions/notion"
-  status = 200
-
-[[redirects]]
   from   = "/api/search"
   to     = "/.netlify/functions/search"
   status = 200
