@@ -7,6 +7,7 @@ import { useAIChat } from './hooks/useAIChat'
 import { useGoogleAuth } from './hooks/useGoogleAuth'
 import { useToolExecutor } from './hooks/useToolExecutor'
 import { useWakeWord, SLEEP_WORDS, matchWord } from './hooks/useWakeWord'
+import { useDesktopAgent } from './hooks/useDesktopAgent'
 import { getApiKey } from './lib/aiConfig'
 import { loadProfile, saveProfile, clearProfile } from './lib/readmeProfile'
 import {
@@ -83,8 +84,9 @@ export default function App() {
     connect: connectGoogle, disconnect: disconnectGoogle, clientId: googleClientId,
   } = useGoogleAuth()
 
-  const { executeTools } = useToolExecutor()
-  const { sendMessage, error } = useAIChat({ honesty, apiKey, profile, toolExecutor: executeTools })
+  const { connected: agentConnected, call: callAgent } = useDesktopAgent()
+  const { executeTools } = useToolExecutor({ callAgent })
+  const { sendMessage, error } = useAIChat({ honesty, apiKey, profile, toolExecutor: executeTools, agentConnected })
   const { speak, stop: stopSpeaking, unlock, isElevenLabs } = useTTS()
 
   const handleUnlock = useCallback(() => {
@@ -287,6 +289,10 @@ export default function App() {
           {isElevenLabs && (
             <div className="voice-active-badge">◈ ELEVENLABS VOICE</div>
           )}
+
+          <div className={`agent-badge agent-badge--${agentConnected ? 'on' : 'off'}`}>
+            {agentConnected ? '◈ DESKTOP ONLINE' : '◎ DESKTOP OFFLINE'}
+          </div>
 
           {/* No START CONVERSATION button — wake words handle activation.
               END SESSION remains as a physical override. */}

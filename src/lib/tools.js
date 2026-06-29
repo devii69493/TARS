@@ -164,3 +164,130 @@ export const TOOLS = [
   },
 
 ]
+
+// ── Desktop tools (only injected when agent is connected) ─────────────────
+export const DESKTOP_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'desktop_app_open',
+      description: 'Open a macOS app by name.',
+      parameters: { type: 'object', properties: { name: { type: 'string', description: 'e.g. "Safari", "Spotify", "Finder"' } }, required: ['name'] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'desktop_app_close',
+      description: 'Quit a running macOS app.',
+      parameters: { type: 'object', properties: { name: { type: 'string' } }, required: ['name'] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'desktop_app_switch',
+      description: 'Switch focus to a running macOS app.',
+      parameters: { type: 'object', properties: { name: { type: 'string' } }, required: ['name'] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'desktop_app_list',
+      description: 'List all currently running macOS apps.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'desktop_screenshot',
+      description: 'Take a screenshot of the current screen. Returns base64 PNG.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'desktop_media',
+      description: 'Control Apple Music or Spotify playback.',
+      parameters: {
+        type: 'object',
+        properties: {
+          action: { type: 'string', enum: ['play_pause', 'next', 'prev', 'current'], description: 'current = get now playing info' },
+        },
+        required: ['action'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'desktop_volume',
+      description: 'Get or set system volume, or mute/unmute.',
+      parameters: {
+        type: 'object',
+        properties: {
+          level: { type: 'number', description: '0–100. Omit to get current level.' },
+          mute:  { type: 'boolean', description: 'true = mute, false = unmute. Omit to skip.' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'desktop_file_open',
+      description: 'Open a file or URL with its default app.',
+      parameters: { type: 'object', properties: { path: { type: 'string', description: 'File path or URL' } }, required: ['path'] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'desktop_spotlight',
+      description: 'Search files on this Mac using Spotlight (mdfind).',
+      parameters: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'desktop_dnd',
+      description: 'Enable or disable Do Not Disturb / Focus mode.',
+      parameters: { type: 'object', properties: { enabled: { type: 'boolean' } }, required: ['enabled'] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'desktop_battery',
+      description: 'Get battery level and charging status.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'desktop_lock',
+      description: 'Lock the screen.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'desktop_timer',
+      description: 'Set a timer — fires a macOS notification when done.',
+      parameters: {
+        type: 'object',
+        properties: {
+          seconds: { type: 'number', description: 'Duration in seconds' },
+          label:   { type: 'string',  description: 'Label shown in notification' },
+        },
+        required: ['seconds'],
+      },
+    },
+  },
+]

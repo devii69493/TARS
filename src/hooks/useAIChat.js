@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { AI_CONFIG } from '../lib/aiConfig'
-import { TOOLS } from '../lib/tools'
+import { TOOLS, DESKTOP_TOOLS } from '../lib/tools'
 import { buildProfileSection } from '../lib/readmeProfile'
 
 // ── System prompt (compressed — target <400 tokens) ───────────────────────
@@ -45,20 +45,23 @@ function trimHistory(history) {
 }
 
 // ── Lazy tool selection (only load tools when message needs them) ───────────
-function selectTools(message) {
+function selectTools(message, agentConnected = false) {
   const m = message.toLowerCase()
   const needsGmail    = /\b(email|gmail|inbox|send|draft|unread|mail)\b/.test(m)
   const needsCalendar = /\b(calendar|schedule|event|meeting|today|tomorrow|appointment)\b/.test(m)
   const needsSearch   = /\b(search|news|score|price|weather|current|latest|who |what |when |where |how much)\b/.test(m)
+  const needsDesktop  = agentConnected && /\b(open|close|quit|launch|app|music|spotify|play|pause|volume|mute|screenshot|file|folder|spotlight|dnd|disturb|battery|lock|timer|brightness|screen)\b/.test(m)
 
-  if (!needsGmail && !needsCalendar && !needsSearch) return []
+  if (!needsGmail && !needsCalendar && !needsSearch && !needsDesktop) return []
 
-  return TOOLS.filter(t => {
+  const selected = TOOLS.filter(t => {
     const n = t.function.name
     return (needsGmail    && n.startsWith('gmail_'))    ||
            (needsCalendar && n.startsWith('calendar_')) ||
            (needsSearch   && n === 'web_search')
   })
+  if (needsDesktop) selected.push(...DESKTOP_TOOLS)
+  return selected
 }
 
 // ── Token usage logger ─────────────────────────────────────────────────────
@@ -187,11 +190,11 @@ async function* streamOpenAICompat(url, apiKey, body, extraHeaders = {}) {
 }
 
 // ── OpenRouter ────────────────────────────────────────────────────────────
-async function callOpenRouter(apiKey, history, userMessage, honesty, profile, onChunk, toolExecutor) {
+async function callOpenRouter(apiKey, history, userMessage, honesty, profile, onChunk, toolExecutor, agentConnected) {
   const OR_URL    = 'https://openrouter.ai/api/v1/chat/completions'
   const OR_HDRS   = { 'HTTP-Referer': 'https://tarsdev.netlify.app', 'X-Title': 'TARS' }
 
-  const activeTools = selectTools(userMessage)
+  const activeTools = selectTools(userMessage, agentConnected)
   const messages = [
     { role: 'system', content: buildSystemPrompt(honesty, profile) },
     ...trimHistory(history).map(m => ({ role: m.role, content: m.content })),
@@ -263,11 +266,11 @@ async function callOpenRouter(apiKey, history, userMessage, honesty, profile, on
 }
 
 // ── Groq ───────────────────────────────────────────────────────────────────
-async function callGroq(apiKey, history, userMessage, honesty, profile, onChunk, toolExecutor) {
+async function callGroq(apiKey, history, userMessage, honesty, profile, onChunk, toolExecutor, agentConnected) {
   const { default: Groq } = await import('groq-sdk')
   const client = new Groq({ apiKey, dangerouslyAllowBrowser: true })
 
-  const activeTools = selectTools(userMessage)
+  const activeTools = selectTools(userMessage, agentConnected)
   const messages = [
     { role: 'system', content: buildSystemPrompt(honesty, profile) },
     ...trimHistory(history).map(m => ({ role: m.role, content: m.content })),
@@ -372,12 +375,12 @@ async function callGemini(apiKey, history, userMessage, honesty, profile, onChun
 }
 
 // ── Anthropic ──────────────────────────────────────────────────────────────
-async function callAnthropic(apiKey, history, userMessage, honesty, profile, onChunk, toolExecutor) {
+async function callAnthropic(apiKey, history, userMessage, honesty, profile, onChunk, toolExecutor, agentConnected) {
   const { default: Anthropic } = await import('@anthropic-ai/sdk')
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true })
   const system = buildSystemPrompt(honesty, profile)
 
-  const activeTools    = selectTools(userMessage)
+  const activeTools    = selectTools(userMessage, agentConnected)
   const anthropicTools = activeTools.map(t => ({
     name:         t.function.name,
     description:  t.function.description,
@@ -441,9 +444,11 @@ async function callAnthropic(apiKey, history, userMessage, honesty, profile, onC
 }
 
 // ── Hook ───────────────────────────────────────────────────────────────────
-export function useAIChat({ honesty, apiKey, profile = '', toolExecutor }) {
+export function useAIChat({ honesty, apiKey, profile = '', toolExecutor, agentConnected = false }) {
   const [isLoading, setIsLoading] = useState(false)
   const [error,     setError]     = useState(null)
+  const agentRef = useRef(agentConnected)
+  useEffect(() => { agentRef.current = agentConnected }, [agentConnected])
 
   const sendMessage = useCallback(
     async (userMessage, history, onChunk) => {
@@ -465,7 +470,7 @@ export function useAIChat({ honesty, apiKey, profile = '', toolExecutor }) {
         const call = CALLERS[AI_CONFIG.provider]
         if (!call) throw new Error(`Unknown provider: ${AI_CONFIG.provider}`)
 
-        const response = await call(apiKey, history, userMessage, honesty, profile, onChunk, toolExecutor)
+        const response = await call(apiKey, history, userMessage, honesty, profile, onChunk, toolExecutor, agentRef.current)
         setIsLoading(false)
         return response
       } catch (err) {

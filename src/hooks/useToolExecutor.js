@@ -101,8 +101,35 @@ function resolveCalendarDates(args) {
   }
 }
 
+// ── Desktop tool → agent tool mapping ─────────────────────────────────────
+async function callDesktopTool(name, args, callAgent) {
+  if (!callAgent) throw new Error('Desktop agent not connected')
+  switch (name) {
+    case 'desktop_app_open':   return callAgent('app_open',   args)
+    case 'desktop_app_close':  return callAgent('app_close',  args)
+    case 'desktop_app_switch': return callAgent('app_switch', args)
+    case 'desktop_app_list':   return callAgent('app_list',   {})
+    case 'desktop_screenshot': return callAgent('screenshot', {})
+    case 'desktop_media': {
+      const map = { play_pause: 'media_playpause', next: 'media_next', prev: 'media_prev', current: 'media_current' }
+      return callAgent(map[args.action] ?? args.action, {})
+    }
+    case 'desktop_volume':
+      if (args.mute  !== undefined) return callAgent('volume_mute', { muted: args.mute })
+      if (args.level !== undefined) return callAgent('volume_set',  { level: args.level })
+      return callAgent('volume_get', {})
+    case 'desktop_file_open':   return callAgent('file_open',    args)
+    case 'desktop_spotlight':   return callAgent('spotlight',    args)
+    case 'desktop_dnd':         return callAgent('dnd',          args)
+    case 'desktop_battery':     return callAgent('battery',      {})
+    case 'desktop_lock':        return callAgent('lock_screen',  {})
+    case 'desktop_timer':       return callAgent('set_timer',    args)
+    default: throw new Error(`Unknown desktop tool: ${name}`)
+  }
+}
+
 // ── Tool executor ──────────────────────────────────────────────────────────
-export function useToolExecutor() {
+export function useToolExecutor({ callAgent } = {}) {
   async function executeTools(toolCalls) {
     return Promise.all(toolCalls.map(async (tc) => {
       const { name, arguments: argsStr } = tc.function
@@ -155,8 +182,13 @@ export function useToolExecutor() {
             result = await webSearch(args.query)
             break
 
+          // Desktop (routed through Python agent over WebSocket)
           default:
-            result = { error: `Unknown tool: ${name}` }
+            if (name.startsWith('desktop_')) {
+              result = await callDesktopTool(name, args, callAgent)
+            } else {
+              result = { error: `Unknown tool: ${name}` }
+            }
         }
 
         return { id: tc.id, name, result }

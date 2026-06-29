@@ -148,6 +148,25 @@ body {
   50%       { opacity: 1.0; border-color: rgba(245, 166, 35, 0.75); }
 }
 
+.agent-badge {
+  font-size: 8px;
+  letter-spacing: 0.3em;
+  padding: 4px 12px;
+  border-radius: 2px;
+  white-space: nowrap;
+  transition: color 0.4s, border-color 0.4s, background 0.4s;
+}
+.agent-badge--on {
+  color: var(--amber);
+  border: 1px solid rgba(245, 166, 35, 0.5);
+  background: rgba(245, 166, 35, 0.08);
+}
+.agent-badge--off {
+  color: rgba(245, 166, 35, 0.25);
+  border: 1px solid rgba(245, 166, 35, 0.12);
+  background: transparent;
+}
+
 .mic-btn {
   width: 58px;
   height: 58px;
@@ -693,6 +712,7 @@ button, input, select { touch-action: manipulation; }
 
   /* VOICE ACTIVE badge - smaller on mobile */
   .voice-active-badge { font-size: 7px; padding: 3px 9px; }
+  .agent-badge { font-size: 7px; padding: 3px 9px; }
 
   /* Listen badge spacing */
   .mic-overlay { gap: 9px; bottom: 20px; }
