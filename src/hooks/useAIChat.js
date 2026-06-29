@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { AI_CONFIG } from '../lib/aiConfig'
 import { TOOLS, DESKTOP_TOOLS } from '../lib/tools'
 import { buildProfileSection } from '../lib/readmeProfile'
@@ -447,8 +447,6 @@ async function callAnthropic(apiKey, history, userMessage, honesty, profile, onC
 export function useAIChat({ honesty, apiKey, profile = '', toolExecutor, agentConnected = false }) {
   const [isLoading, setIsLoading] = useState(false)
   const [error,     setError]     = useState(null)
-  const agentRef = useRef(agentConnected)
-  useEffect(() => { agentRef.current = agentConnected }, [agentConnected])
 
   const sendMessage = useCallback(
     async (userMessage, history, onChunk) => {
@@ -470,7 +468,7 @@ export function useAIChat({ honesty, apiKey, profile = '', toolExecutor, agentCo
         const call = CALLERS[AI_CONFIG.provider]
         if (!call) throw new Error(`Unknown provider: ${AI_CONFIG.provider}`)
 
-        const response = await call(apiKey, history, userMessage, honesty, profile, onChunk, toolExecutor, agentRef.current)
+        const response = await call(apiKey, history, userMessage, honesty, profile, onChunk, toolExecutor, agentConnected)
         setIsLoading(false)
         return response
       } catch (err) {
@@ -479,7 +477,7 @@ export function useAIChat({ honesty, apiKey, profile = '', toolExecutor, agentCo
         return null
       }
     },
-    [honesty, apiKey, profile, toolExecutor],
+    [honesty, apiKey, profile, toolExecutor, agentConnected],
   )
 
   return { sendMessage, isLoading, error }
