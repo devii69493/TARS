@@ -92,21 +92,29 @@ export function useTTS() {
     u.pitch  = 0.65
     u.volume = 1.0
 
-    // Chromium bug: long utterances stall silently — resume() unsticks them
-    const keepAlive = setInterval(() => {
-      if (!window.speechSynthesis.speaking) clearInterval(keepAlive)
-      else if (window.speechSynthesis.paused) window.speechSynthesis.resume()
-    }, 5000)
-
-    u.onend = () => {
+    // Chromium bug: onend silently stops firing after a few utterances.
+    // Poll every 500ms; if speech ended without onend, fire the callback ourselves.
+    let done = false
+    const finish = () => {
+      if (done) return
+      done = true
       clearInterval(keepAlive)
       setIsSpeaking(false)
       onEnd?.()
     }
+
+    const keepAlive = setInterval(() => {
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume()
+      } else if (!window.speechSynthesis.speaking) {
+        finish()
+      }
+    }, 500)
+
+    u.onend  = finish
     u.onerror = (e) => {
-      clearInterval(keepAlive)
-      setIsSpeaking(false)
-      if (e.error !== 'canceled') onEnd?.()
+      if (e.error === 'canceled') { done = true; clearInterval(keepAlive); setIsSpeaking(false); return }
+      finish()
     }
 
     setTimeout(() => {
