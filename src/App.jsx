@@ -86,7 +86,7 @@ export default function App() {
 
   const { connected: agentConnected, call: callAgent } = useDesktopAgent()
   const { executeTools } = useToolExecutor({ callAgent })
-  const { sendMessage, error } = useAIChat({ honesty, apiKey, profile, toolExecutor: executeTools, agentConnected })
+  const { sendMessage, error } = useAIChat({ honesty, apiKey, profile, toolExecutor: executeTools })
   const { speak, stop: stopSpeaking, unlock, isElevenLabs } = useTTS()
 
   const handleUnlock = useCallback(() => {

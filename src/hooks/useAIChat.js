@@ -45,12 +45,12 @@ function trimHistory(history) {
 }
 
 // ── Lazy tool selection (only load tools when message needs them) ───────────
-function selectTools(message, agentConnected = false) {
+function selectTools(message) {
   const m = message.toLowerCase()
   const needsGmail    = /\b(email|gmail|inbox|send|draft|unread|mail)\b/.test(m)
   const needsCalendar = /\b(calendar|schedule|event|meeting|today|tomorrow|appointment)\b/.test(m)
   const needsSearch   = /\b(search|news|score|price|weather|current|latest|who |what |when |where |how much)\b/.test(m)
-  const needsDesktop  = agentConnected && /\b(open|close|quit|launch|app|music|spotify|play|pause|volume|mute|screenshot|file|folder|spotlight|dnd|disturb|battery|lock|timer|brightness|screen)\b/.test(m)
+  const needsDesktop  = /\b(open|close|quit|launch|app|music|spotify|play|pause|volume|mute|screenshot|file|folder|spotlight|dnd|disturb|battery|lock|timer|brightness|screen)\b/.test(m)
 
   if (!needsGmail && !needsCalendar && !needsSearch && !needsDesktop) return []
 
@@ -190,11 +190,11 @@ async function* streamOpenAICompat(url, apiKey, body, extraHeaders = {}) {
 }
 
 // ── OpenRouter ────────────────────────────────────────────────────────────
-async function callOpenRouter(apiKey, history, userMessage, honesty, profile, onChunk, toolExecutor, agentConnected) {
+async function callOpenRouter(apiKey, history, userMessage, honesty, profile, onChunk, toolExecutor) {
   const OR_URL    = 'https://openrouter.ai/api/v1/chat/completions'
   const OR_HDRS   = { 'HTTP-Referer': 'https://tarsdev.netlify.app', 'X-Title': 'TARS' }
 
-  const activeTools = selectTools(userMessage, agentConnected)
+  const activeTools = selectTools(userMessage)
   const messages = [
     { role: 'system', content: buildSystemPrompt(honesty, profile) },
     ...trimHistory(history).map(m => ({ role: m.role, content: m.content })),
@@ -266,11 +266,11 @@ async function callOpenRouter(apiKey, history, userMessage, honesty, profile, on
 }
 
 // ── Groq ───────────────────────────────────────────────────────────────────
-async function callGroq(apiKey, history, userMessage, honesty, profile, onChunk, toolExecutor, agentConnected) {
+async function callGroq(apiKey, history, userMessage, honesty, profile, onChunk, toolExecutor) {
   const { default: Groq } = await import('groq-sdk')
   const client = new Groq({ apiKey, dangerouslyAllowBrowser: true })
 
-  const activeTools = selectTools(userMessage, agentConnected)
+  const activeTools = selectTools(userMessage)
   const messages = [
     { role: 'system', content: buildSystemPrompt(honesty, profile) },
     ...trimHistory(history).map(m => ({ role: m.role, content: m.content })),
@@ -375,12 +375,12 @@ async function callGemini(apiKey, history, userMessage, honesty, profile, onChun
 }
 
 // ── Anthropic ──────────────────────────────────────────────────────────────
-async function callAnthropic(apiKey, history, userMessage, honesty, profile, onChunk, toolExecutor, agentConnected) {
+async function callAnthropic(apiKey, history, userMessage, honesty, profile, onChunk, toolExecutor) {
   const { default: Anthropic } = await import('@anthropic-ai/sdk')
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true })
   const system = buildSystemPrompt(honesty, profile)
 
-  const activeTools    = selectTools(userMessage, agentConnected)
+  const activeTools    = selectTools(userMessage)
   const anthropicTools = activeTools.map(t => ({
     name:         t.function.name,
     description:  t.function.description,
@@ -444,7 +444,7 @@ async function callAnthropic(apiKey, history, userMessage, honesty, profile, onC
 }
 
 // ── Hook ───────────────────────────────────────────────────────────────────
-export function useAIChat({ honesty, apiKey, profile = '', toolExecutor, agentConnected = false }) {
+export function useAIChat({ honesty, apiKey, profile = '', toolExecutor }) {
   const [isLoading, setIsLoading] = useState(false)
   const [error,     setError]     = useState(null)
 
@@ -468,7 +468,7 @@ export function useAIChat({ honesty, apiKey, profile = '', toolExecutor, agentCo
         const call = CALLERS[AI_CONFIG.provider]
         if (!call) throw new Error(`Unknown provider: ${AI_CONFIG.provider}`)
 
-        const response = await call(apiKey, history, userMessage, honesty, profile, onChunk, toolExecutor, agentConnected)
+        const response = await call(apiKey, history, userMessage, honesty, profile, onChunk, toolExecutor)
         setIsLoading(false)
         return response
       } catch (err) {
@@ -477,7 +477,7 @@ export function useAIChat({ honesty, apiKey, profile = '', toolExecutor, agentCo
         return null
       }
     },
-    [honesty, apiKey, profile, toolExecutor, agentConnected],
+    [honesty, apiKey, profile, toolExecutor],
   )
 
   return { sendMessage, isLoading, error }

@@ -142,6 +142,8 @@ def dnd_set(enabled: bool) -> str:
 
 def battery() -> dict:
     raw = cmd("pmset", "-g", "batt")
+    if "%" not in raw:
+        return {"percent": None, "charging": False, "note": "No battery — desktop Mac on AC power"}
     pct, charging = None, False
     for line in raw.split("\n"):
         if "%" in line:
