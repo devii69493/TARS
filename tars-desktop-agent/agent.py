@@ -205,9 +205,11 @@ def _vlc_open(url: str):
 
 def youtube_play(query: str) -> str:
     try:
+        # Use a single combined stream — bestvideo+bestaudio returns two URLs
+        # (video-only + audio-only); taking urls[0] gives a silent video track.
         result = subprocess.run(
-            ["yt-dlp", "--no-playlist", "--no-warnings", "-f",
-             "bestvideo[height<=720]+bestaudio/best[height<=720]",
+            ["yt-dlp", "--no-playlist", "--no-warnings",
+             "-f", "best[height<=720]/best",
              "-g", f"ytsearch1:{query}"],
             capture_output=True, text=True, timeout=30
         )
@@ -219,10 +221,7 @@ def youtube_play(query: str) -> str:
         raise RuntimeError(
             "yt-dlp not installed. Run: brew install yt-dlp && brew install --cask vlc"
         )
-    try:
-        _vlc_open(url)
-    except FileNotFoundError:
-        raise RuntimeError("VLC not installed — run: brew install --cask vlc")
+    _vlc_open(url)
     return f"Playing on YouTube: {query}"
 
 def youtube_pause() -> str:
