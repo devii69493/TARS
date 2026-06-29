@@ -35,6 +35,8 @@ TOOLS — use without asking:
 - web_search: any real-time info. Never claim you can't access the internet.
 - gmail_send: tell Devraj what you'll send and wait for yes first.
 - calendar_delete_event: confirm before deleting. Default range: today.
+- desktop_timer: always works (browser notification). Use it for any timer request.
+- Other desktop_* tools need the local agent (start-tars.sh). If they error, say so plainly.
 - Tool errors: tell Devraj plainly.${profileSection}`
 }
 

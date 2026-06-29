@@ -101,9 +101,31 @@ function resolveCalendarDates(args) {
   }
 }
 
+// ── Browser-based timer (works without the desktop agent) ─────────────────
+async function browserTimer(seconds, label = 'Timer') {
+  if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+    await Notification.requestPermission()
+  }
+  setTimeout(() => {
+    if (Notification.permission === 'granted') {
+      new Notification('TARS', { body: `${label} complete`, silent: false })
+    }
+  }, seconds * 1000)
+  const m = Math.floor(seconds / 60), s = seconds % 60
+  return `Timer set: ${label} in ${m ? `${m}m ${s}s` : `${s}s`}`
+}
+
 // ── Desktop tool → agent tool mapping ─────────────────────────────────────
 async function callDesktopTool(name, args, callAgent) {
-  if (!callAgent) throw new Error('Desktop agent not connected')
+  // Timer works in-browser even without the agent
+  if (name === 'desktop_timer') {
+    if (callAgent) {
+      try { return await callAgent('set_timer', args) } catch {}
+    }
+    return browserTimer(parseInt(args.seconds), args.label || 'Timer')
+  }
+
+  if (!callAgent) throw new Error('Desktop agent offline. Run start-tars.sh for app/system control.')
   switch (name) {
     case 'desktop_app_open':   return callAgent('app_open',   args)
     case 'desktop_app_close':  return callAgent('app_close',  args)
@@ -123,7 +145,6 @@ async function callDesktopTool(name, args, callAgent) {
     case 'desktop_dnd':         return callAgent('dnd',          args)
     case 'desktop_battery':     return callAgent('battery',      {})
     case 'desktop_lock':        return callAgent('lock_screen',  {})
-    case 'desktop_timer':       return callAgent('set_timer',    args)
     default: throw new Error(`Unknown desktop tool: ${name}`)
   }
 }

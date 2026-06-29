@@ -132,13 +132,35 @@ def recent_files(limit: int = 10) -> list:
 # ── System ────────────────────────────────────────────────────────────────────
 
 def dnd_set(enabled: bool) -> str:
+    # Try Shortcuts app first (most reliable on macOS 12+)
     label = "Turn On Do Not Disturb" if enabled else "Turn Off Do Not Disturb"
     try:
         subprocess.run(["shortcuts", "run", label], timeout=6, check=True)
         return f"Do Not Disturb {'on' if enabled else 'off'}"
     except Exception:
-        return ("DND toggle requires a Shortcut named 'Turn On/Off Do Not Disturb'. "
-                "Create it in the Shortcuts app.")
+        pass
+    # Fallback: toggle via Focus menu bar item (macOS 13+)
+    action = "on" if enabled else "off"
+    try:
+        script = f'''
+tell application "System Events"
+    tell application process "Control Center"
+        set mb to menu bar 1
+        set cc to menu bar item "Control Center" of mb
+        click cc
+        delay 0.5
+        set focusBtn to (first button of window 1 whose description contains "Focus")
+        click focusBtn
+        delay 0.3
+        key code 53
+    end tell
+end tell
+'''
+        osa(script, timeout=8)
+        return f"Do Not Disturb {action}"
+    except Exception:
+        return ("DND requires a Shortcut named 'Turn On Do Not Disturb' / 'Turn Off Do Not Disturb'. "
+                "Create them in the Shortcuts app, or toggle Focus manually.")
 
 def battery() -> dict:
     raw = cmd("pmset", "-g", "batt")
@@ -164,9 +186,9 @@ def set_brightness(level: float) -> str:
         raise RuntimeError("Install brightness CLI first: brew install brightness")
 
 def lock_screen() -> str:
-    cgpath = ("/System/Library/CoreServices/Menu Extras/User.menu"
-              "/Contents/Resources/CGSession")
-    subprocess.Popen([cgpath, "-suspend"])
+    # Ctrl+Cmd+Q — works on macOS 10.13+ without needing CGSession path
+    osa('tell application "System Events" to keystroke "q" using {control down, command down}',
+        timeout=5)
     return "Screen locked"
 
 def set_timer(seconds: int, label: str = "Timer") -> str:
