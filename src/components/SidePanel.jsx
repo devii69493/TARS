@@ -30,6 +30,7 @@ export function SidePanel({
   voiceMode,
   onVoiceModeChange,
   agentConnected,
+  onAgentUrlChange,
 }) {
   const fileInputRef = useRef(null)
 
@@ -130,6 +131,27 @@ export function SidePanel({
             {googleError && (
               <div className="settings-error">{googleError}</div>
             )}
+          </div>
+
+          {/* Desktop agent URL */}
+          <div className="settings-section">
+            <div className="settings-label">DESKTOP AGENT URL</div>
+            <form className="key-form" onSubmit={(e) => {
+              e.preventDefault()
+              onAgentUrlChange(e.target.elements.agentUrl.value)
+            }}>
+              <input
+                name="agentUrl"
+                type="text"
+                defaultValue={localStorage.getItem('tars_agent_url') || ''}
+                placeholder="ws://localhost:7354"
+                className="key-input"
+              />
+              <button type="submit" className="key-save">SET</button>
+            </form>
+            <div className="settings-hint">
+              {agentConnected ? '◉ CONNECTED' : '◎ OFFLINE'} — for iPad: use Mac IP or ngrok URL
+            </div>
           </div>
 
           {/* Voice output */}

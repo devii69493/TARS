@@ -88,7 +88,7 @@ export default function App() {
     connect: connectGoogle, disconnect: disconnectGoogle, clientId: googleClientId,
   } = useGoogleAuth()
 
-  const { connected: agentConnected, call: callAgent, onHotword } = useDesktopAgent()
+  const { connected: agentConnected, call: callAgent, onHotword, setAgentUrl } = useDesktopAgent()
   const { speak, stop: stopSpeaking, unlock, isElevenLabs, isLocal } = useTTS({ voiceMode, callAgent })
 
   // Pattern learning — records tool usage and suggests habits on next session
@@ -388,6 +388,7 @@ export default function App() {
         voiceMode={voiceMode}
         onVoiceModeChange={handleVoiceModeChange}
         agentConnected={agentConnected}
+        onAgentUrlChange={setAgentUrl}
       />
     </div>
   )

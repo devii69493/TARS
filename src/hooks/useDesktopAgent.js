@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-const AGENT_URL      = 'ws://localhost:7354'
+const DEFAULT_AGENT_URL = 'ws://localhost:7354'
+function getAgentUrl() {
+  return localStorage.getItem('tars_agent_url') || DEFAULT_AGENT_URL
+}
 const RECONNECT_MS   = 3000
 const CALL_TIMEOUT   = 30000
 
@@ -16,7 +19,7 @@ export function useDesktopAgent() {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
 
     let ws
-    try { ws = new WebSocket(AGENT_URL) } catch { return }
+    try { ws = new WebSocket(getAgentUrl()) } catch { return }
     wsRef.current = ws
 
     ws.onopen = () => {
@@ -88,5 +91,13 @@ export function useDesktopAgent() {
 
   const onHotword = useCallback((cb) => { hotwordCbRef.current = cb }, [])
 
-  return { connected, call, onHotword }
+  const setAgentUrl = useCallback((url) => {
+    const clean = url.trim()
+    if (clean) localStorage.setItem('tars_agent_url', clean)
+    else        localStorage.removeItem('tars_agent_url')
+    // Force reconnect with new URL
+    wsRef.current?.close()
+  }, [])
+
+  return { connected, call, onHotword, setAgentUrl }
 }
