@@ -121,22 +121,30 @@ def spotify_current() -> dict:
     }
 
 def spotify_search(query: str) -> str:
-    """Open Spotify and search. Uses keyboard shortcut to trigger play."""
-    encoded = urllib.parse.quote(query)
+    """Search Spotify via keyboard: Cmd+L → type → Return plays top suggestion."""
     if not _spotify_active():
         subprocess.Popen(["open", "-a", "Spotify"])
-        time.sleep(2)
-    subprocess.run(["open", f"spotify:search:{encoded}"])
-    time.sleep(1.5)
-    # Focus Spotify and trigger play on search results
+        time.sleep(2.5)
+    # Escape any AppleScript-special characters
+    safe = query.replace("\\", "\\\\").replace('"', '\\"')
     osa(f'''
 tell application "Spotify" to activate
-delay 0.8
+delay 0.6
 tell application "System Events"
-    keystroke return
+    tell process "Spotify"
+        set frontmost to true
+        delay 0.4
+        keystroke "l" using command down
+        delay 0.5
+        keystroke "a" using command down
+        delay 0.1
+        keystroke "{safe}"
+        delay 1.2
+        keystroke return
+    end tell
 end tell
 ''')
-    return f"Searching Spotify: {query}"
+    return f"Playing on Spotify: {query}"
 
 def spotify_volume(level: int) -> str:
     level = max(0, min(100, int(level)))
@@ -205,10 +213,12 @@ def youtube_play(query: str) -> str:
         )
         urls = [u for u in result.stdout.strip().split("\n") if u]
         if not urls:
-            raise RuntimeError("No results")
+            raise RuntimeError("No results found for that query")
         url = urls[0]
     except FileNotFoundError:
-        raise RuntimeError("yt-dlp not installed — run: brew install yt-dlp")
+        raise RuntimeError(
+            "yt-dlp not installed. Run: brew install yt-dlp && brew install --cask vlc"
+        )
     try:
         _vlc_open(url)
     except FileNotFoundError:
