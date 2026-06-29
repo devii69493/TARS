@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env /usr/bin/python3
 """TARS Desktop Agent — Phase 2B: Full OS Control."""
 
 import asyncio
@@ -194,14 +194,14 @@ _vlc_proc = None
 _vlc_lock = threading.Lock()
 
 def _vlc_open(url: str):
-    global _vlc_proc
-    with _vlc_lock:
-        if _vlc_proc and _vlc_proc.poll() is None:
-            _vlc_proc.terminate()
-        _vlc_proc = subprocess.Popen(
-            ["vlc", "--no-osd", "--play-and-exit", url],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-        )
+    # Use open -a VLC so the full VLC.app launches with proper audio routing
+    try:
+        osa('tell application "VLC" to quit')
+        time.sleep(0.5)
+    except Exception:
+        pass
+    subprocess.Popen(["open", "-a", "VLC", url],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 def youtube_play(query: str) -> str:
     try:
@@ -240,13 +240,8 @@ def youtube_resume() -> str:
         raise RuntimeError("VLC not responding")
 
 def youtube_stop() -> str:
-    global _vlc_proc
-    with _vlc_lock:
-        if _vlc_proc and _vlc_proc.poll() is None:
-            _vlc_proc.terminate()
-        _vlc_proc = None
     try:
-        osa('tell application "VLC" to stop')
+        osa('tell application "VLC" to quit')
     except Exception:
         pass
     return "Stopped"

@@ -15,14 +15,15 @@ pkill -f "agent.py" 2>/dev/null || true
 lsof -ti:5173 | xargs kill -9 2>/dev/null || true
 sleep 0.4
 
-# ── Python agent ──────────────────────────────────────────────────────────────
+# ── Python agent (always use system Python 3.9 — brew python may be newer/broken) ──
+PYTHON=/usr/bin/python3
 echo "▶ Starting desktop agent..."
-if ! python3 -c "import websockets" 2>/dev/null; then
+if ! $PYTHON -c "import websockets" 2>/dev/null; then
     echo "  Installing Python deps..."
-    pip3 install -r "$AGENT_DIR/requirements.txt" -q
+    $PYTHON -m pip install "websockets>=12.0" -q
 fi
 cd "$AGENT_DIR"
-python3 agent.py &
+$PYTHON agent.py &
 AGENT_PID=$!
 
 # ── Vite dev server ───────────────────────────────────────────────────────────
