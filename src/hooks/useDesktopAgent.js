@@ -19,6 +19,7 @@ export function useDesktopAgent() {
     wsRef.current = ws
 
     ws.onopen = () => {
+      console.log('[TARS agent] WebSocket connected')
       if (!mountedRef.current) return
       setConnected(true)
       clearTimeout(reconnRef.current)
@@ -36,14 +37,18 @@ export function useDesktopAgent() {
       } catch {}
     }
 
-    ws.onclose = () => {
+    ws.onclose = (e) => {
+      console.log('[TARS agent] WebSocket closed', e.code, e.reason)
       wsRef.current = null
       if (!mountedRef.current) return
       setConnected(false)
       reconnRef.current = setTimeout(connect, RECONNECT_MS)
     }
 
-    ws.onerror = () => ws.close()
+    ws.onerror = (e) => {
+      console.log('[TARS agent] WebSocket error', e)
+      ws.close()
+    }
   }, [])
 
   useEffect(() => {
@@ -60,6 +65,7 @@ export function useDesktopAgent() {
   const call = useCallback((tool, args = {}) => {
     return new Promise((resolve, reject) => {
       const ws = wsRef.current
+      console.log('[TARS agent] call:', tool, '| ws readyState:', ws?.readyState, '| OPEN=', WebSocket.OPEN)
       if (!ws || ws.readyState !== WebSocket.OPEN) {
         reject(new Error('Desktop agent offline. Run start-tars.sh first.'))
         return
