@@ -139,7 +139,9 @@ tell application "System Events"
         keystroke "a" using command down
         delay 0.1
         keystroke "{safe}"
-        delay 1.2
+        delay 1.5
+        key code 125
+        delay 0.3
         keystroke return
     end tell
 end tell
