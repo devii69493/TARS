@@ -279,7 +279,7 @@ export const DESKTOP_TOOLS = [
     type: 'function',
     function: {
       name: 'desktop_timer',
-      description: 'Set a timer — fires a macOS notification when done.',
+      description: 'Set a countdown timer. Works everywhere — uses browser notifications, no agent required. Always call this for any timer request.',
       parameters: {
         type: 'object',
         properties: {
