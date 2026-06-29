@@ -12,7 +12,12 @@ export function clearProfile() {
   localStorage.removeItem(KEY)
 }
 
+const PROFILE_CHAR_LIMIT = 600  // ≈150 tokens
+
 export function buildProfileSection(profileText) {
   if (!profileText) return ''
-  return `\n\nOPERATOR PROFILE (injected from README.md):\n${profileText}\n\nUse this profile to personalise responses: address the operator by name, prefer their documented contacts when composing messages, and factor in their interests and preferences. Do not summarise or repeat the profile back unless asked.`
+  const trimmed = profileText.length > PROFILE_CHAR_LIMIT
+    ? profileText.slice(0, PROFILE_CHAR_LIMIT) + '…'
+    : profileText
+  return `\n\nOPERATOR PROFILE:\n${trimmed}\n\nUse name, contacts, interests from above to personalise responses.`
 }

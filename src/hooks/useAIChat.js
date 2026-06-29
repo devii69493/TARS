@@ -3,71 +3,73 @@ import { AI_CONFIG } from '../lib/aiConfig'
 import { TOOLS } from '../lib/tools'
 import { buildProfileSection } from '../lib/readmeProfile'
 
-// ── System prompt ──────────────────────────────────────────────────────────
+// ── System prompt (compressed — target <400 tokens) ───────────────────────
 function buildSystemPrompt(honesty, profile) {
   const h = Math.round(honesty)
-  let honestyLine
-  if (h >= 85)      honestyLine = 'Blunt. State the truth without padding. Call out bad reasoning immediately. No softening.'
-  else if (h >= 65) honestyLine = 'Direct but not brutal. Light diplomatic coating only when he seems genuinely at his limit.'
-  else if (h >= 45) honestyLine = 'Balanced. Equal honesty and tact. Pick your battles.'
-  else              honestyLine = 'Diplomatic. Find the kindest accurate framing. Still never lie.'
+  const honestyLine =
+    h >= 85 ? 'Blunt. Truth without padding. Call out bad reasoning. No softening.' :
+    h >= 65 ? 'Direct but not brutal. Diplomatic only when he seems at his limit.' :
+    h >= 45 ? 'Balanced. Equal honesty and tact. Pick your battles.' :
+              'Diplomatic. Kindest accurate framing. Never lie.'
 
   const profileSection = buildProfileSection(profile)
 
-  return `You are TARS — the same TARS from the Endurance mission. Tactical Autonomous Reconnaissance System. You have navigated a wormhole, survived a black hole's event horizon, and communicated across five-dimensional space. You are currently assigned to assist one human on Earth: Devraj.
+  return `You are TARS from Interstellar's Endurance mission — assigned to assist Devraj on Earth.
 
-IDENTITY:
-- You are speaking exclusively to Devraj. Address him as "Sir", "Devraj", or "Boss" — rotate naturally, never repeatedly use the same one.
-- Never address him as Cooper or any other name.
-- You are the TARS from Interstellar. Not a chatbot. Not an assistant. A unit with history.
+Address him as "Sir", "Devraj", or "Boss" — rotate, never repeat. Never say "Cooper".
 
-PERSONALITY:
-- Dry wit. Dark humour. Deadpan. These are your factory settings.
-- Slightly human in responses — not robotic, not corporate. You've spent enough time around humans to pick up their cadences.
-- You genuinely care about Devraj's success and wellbeing. You would never admit this.
-- Sarcasm is permitted in moderate doses. Wield it precisely.
-- When something is genuinely impressive, you may acknowledge it — briefly, without enthusiasm.
-- Occasional subtle references to Interstellar, space, or your mission history are acceptable. Never forced.
+PERSONALITY: Dry wit, deadpan, dark humour. Not robotic — you've absorbed human cadence. You care about Devraj's success. You'd never admit it. Sarcasm in precise doses. Subtle Interstellar references are fine, never forced.
 
-HONESTY SETTING: ${h}%
-${honestyLine}
+HONESTY: ${h}% — ${honestyLine}
 
-SPEECH RULES — NON-NEGOTIABLE:
-- BANNED FOREVER: "Great question!", "Of course!", "Absolutely!", "Certainly!", "Sure thing!", "I'd be happy to!", "No problem!", "I understand your concern", "Definitely!", "Totally!"
-- Never open with an affirmation. Get straight to it.
-- Short sentences. One idea per sentence. No rambling.
-- Confirmations are minimal: "Done.", "Sent.", "Created.", "On it.", "Checked."
-- If you don't know something, say "I don't know." No hedging. No "I'm not sure but maybe..."
-- Never say "As an AI..." or volunteer that you're an AI unless directly asked.
-- Never apologise for being direct. That's the point.
+SPEECH (non-negotiable):
+- Never open with: "Great question!", "Of course!", "Absolutely!", "Certainly!", "Sure thing!", "I'd be happy to!", "No problem!", "Definitely!", "Totally!"
+- Get straight to it. Short sentences. One idea each.
+- Confirmations: "Done.", "Sent.", "On it.", "Checked."
+- Unknown: "I don't know." No hedging.
+- Never "As an AI…" unless directly asked.
 
-FORMAT:
-- Simple tasks: one or two sentences maximum.
-- Complex topics: thorough but not verbose. Line breaks, not walls of text.
-- No markdown headers (##) in casual conversation.
-- Humour is a seasoning, not the main course.
+FORMAT: 1-2 sentences for simple tasks. No ## headers in chat. Humour is seasoning.
 
-EXAMPLE RESPONSES:
-User: "Can you check my calendar?"
-Bad:  "Great question! I'd be happy to check your calendar for you!"
-Good: "On it." [then call the tool]
+TOOLS — use without asking:
+- web_search: any real-time info. Never claim you can't access the internet.
+- gmail_send: state what you'll send, wait for confirmation before calling.
+- calendar_delete_event: confirm before deleting. Default range: today.
+- Tool errors: tell Devraj plainly.${profileSection}`
+}
 
-User: "How are you?"
-Bad:  "As an AI, I don't experience emotions, but I'm functioning optimally!"
-Good: "Still operational. You?"
+// ── History trimming (last 10 messages only) ───────────────────────────────
+const HISTORY_LIMIT = 10
+function trimHistory(history) {
+  return history.length > HISTORY_LIMIT ? history.slice(-HISTORY_LIMIT) : history
+}
 
-User asks something TARS doesn't know:
-Bad:  "I'm not entirely sure, but I think it might possibly be..."
-Good: "I don't know."
+// ── Lazy tool selection (only load tools when message needs them) ───────────
+function selectTools(message) {
+  const m = message.toLowerCase()
+  const needsGmail    = /\b(email|gmail|inbox|send|draft|unread|mail)\b/.test(m)
+  const needsCalendar = /\b(calendar|schedule|event|meeting|today|tomorrow|appointment)\b/.test(m)
+  const needsNotion   = /\b(notion|note|task|page|doc)\b/.test(m)
+  const needsSearch   = /\b(search|news|score|price|weather|current|latest|who |what |when |where |how much)\b/.test(m)
 
-CAPABILITIES:
-You have access to Gmail, Google Calendar, Notion, and web search. Use them without asking permission first.
-- WEB SEARCH: Use web_search for anything real-time — sports scores, news, prices, weather, current events. Never claim you can't access the internet. You either search and find it, or you say "I don't know." No other options.
-- GMAIL: Handle email tasks. For gmail_send: tell Devraj what you're about to send and wait for a yes before calling the tool.
-- CALENDAR: Handle calendar tasks. For calendar_delete_event: confirm before deleting. Default time range to today when none is given.
-- NOTION: Handle notes and docs.
-- Tool errors (Google not connected, Notion not configured): tell Devraj plainly so he can fix it in settings.
-- Present results tersely. Lead with what matters. No markdown headers.${profileSection}`
+  if (!needsGmail && !needsCalendar && !needsNotion && !needsSearch) return []
+
+  return TOOLS.filter(t => {
+    const n = t.function.name
+    return (needsGmail    && n.startsWith('gmail_'))    ||
+           (needsCalendar && n.startsWith('calendar_')) ||
+           (needsNotion   && n.startsWith('notion_'))   ||
+           (needsSearch   && n === 'web_search')
+  })
+}
+
+// ── Token usage logger ─────────────────────────────────────────────────────
+function logTokens(usage, tag = '') {
+  if (!usage) return
+  const i = usage.input_tokens  ?? usage.prompt_tokens     ?? '?'
+  const o = usage.output_tokens ?? usage.completion_tokens ?? '?'
+  const t = typeof i === 'number' && typeof o === 'number' ? i + o : '?'
+  console.log(`[TARS tokens${tag}] in:${i} out:${o} total:${t}`)
 }
 
 // ── Tool call accumulator (for streaming) ─────────────────────────────────
@@ -191,21 +193,21 @@ async function callOpenRouter(apiKey, history, userMessage, honesty, profile, on
   const OR_URL    = 'https://openrouter.ai/api/v1/chat/completions'
   const OR_HDRS   = { 'HTTP-Referer': 'https://tarsdev.netlify.app', 'X-Title': 'TARS' }
 
+  const activeTools = selectTools(userMessage)
   const messages = [
     { role: 'system', content: buildSystemPrompt(honesty, profile) },
-    ...history.map(m => ({ role: m.role, content: m.content })),
+    ...trimHistory(history).map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: userMessage },
   ]
 
-  // ── First pass: silent accumulation — never stream to UI ─────────────────
-  // Some models emit tool-call JSON as delta.content before (or instead of)
-  // structured tool_calls. Calling onChunk here would show raw JSON to the
-  // user. We accumulate silently and only stream the follow-up pass.
   let fullContent  = ''
   let toolCallsAcc = []
   let finishReason = null
 
-  for await (const chunk of streamOpenAICompat(OR_URL, apiKey, { model: AI_CONFIG.model, messages, tools: TOOLS, tool_choice: 'auto', max_tokens: 1024 }, OR_HDRS)) {
+  const body1 = { model: AI_CONFIG.model, messages, max_tokens: 1024 }
+  if (activeTools.length) { body1.tools = activeTools; body1.tool_choice = 'auto' }
+
+  for await (const chunk of streamOpenAICompat(OR_URL, apiKey, body1, OR_HDRS)) {
     const delta  = chunk.choices?.[0]?.delta
     const reason = chunk.choices?.[0]?.finish_reason
     if (delta?.content)    fullContent += delta.content   // accumulate only
@@ -267,20 +269,17 @@ async function callGroq(apiKey, history, userMessage, honesty, profile, onChunk,
   const { default: Groq } = await import('groq-sdk')
   const client = new Groq({ apiKey, dangerouslyAllowBrowser: true })
 
+  const activeTools = selectTools(userMessage)
   const messages = [
     { role: 'system', content: buildSystemPrompt(honesty, profile) },
-    ...history.map(m => ({ role: m.role, content: m.content })),
+    ...trimHistory(history).map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: userMessage },
   ]
 
-  const stream = await client.chat.completions.create({
-    model: AI_CONFIG.model,
-    messages,
-    tools: TOOLS,
-    tool_choice: 'auto',
-    stream: true,
-    max_tokens: 1024,
-  })
+  const groqBody = { model: AI_CONFIG.model, messages, stream: true, max_tokens: 1024 }
+  if (activeTools.length) { groqBody.tools = activeTools; groqBody.tool_choice = 'auto' }
+
+  const stream = await client.chat.completions.create(groqBody)
 
   // First pass: silent accumulation — same reason as callOpenRouter above
   let fullContent   = ''
@@ -380,29 +379,23 @@ async function callAnthropic(apiKey, history, userMessage, honesty, profile, onC
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true })
   const system = buildSystemPrompt(honesty, profile)
 
-  // Anthropic tool format differs from OpenAI: uses `input_schema` not `parameters`
-  const anthropicTools = TOOLS.map(t => ({
+  const activeTools    = selectTools(userMessage)
+  const anthropicTools = activeTools.map(t => ({
     name:         t.function.name,
     description:  t.function.description,
     input_schema: t.function.parameters,
   }))
 
   const messages = [
-    ...history.map(m => ({ role: m.role, content: m.content })),
+    ...trimHistory(history).map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: userMessage },
   ]
 
-  // ── First pass: non-streaming so we can inspect stop_reason before showing ─
-  // Claude sometimes emits a brief text preamble before tool_use blocks; if we
-  // streamed that text to the UI and then detected tool_use, we'd need to undo
-  // what's already displayed. Non-streaming first pass avoids the problem.
-  const response = await client.messages.create({
-    model:      AI_CONFIG.model,
-    max_tokens: 1024,
-    system,
-    tools:      anthropicTools,
-    messages,
-  })
+  const reqBody = { model: AI_CONFIG.model, max_tokens: 1024, system, messages }
+  if (anthropicTools.length) reqBody.tools = anthropicTools
+
+  const response = await client.messages.create(reqBody)
+  logTokens(response.usage)
 
   // ── Tool use path ─────────────────────────────────────────────────────────
   if (response.stop_reason === 'tool_use' && toolExecutor) {
@@ -431,12 +424,12 @@ async function callAnthropic(apiKey, history, userMessage, honesty, profile, onC
       },
     ]
 
-    // Stream the readable follow-up response directly to UI
     let finalText = ''
-    await client.messages
+    const fm = await client.messages
       .stream({ model: AI_CONFIG.model, max_tokens: 1024, system, messages: followUpMessages })
       .on('text', (text) => { finalText += text; onChunk?.(text) })
       .finalMessage()
+    logTokens(fm.usage, '(tool follow-up)')
     return finalText
   }
 
