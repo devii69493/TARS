@@ -84,7 +84,7 @@ export default function App() {
     connect: connectGoogle, disconnect: disconnectGoogle, clientId: googleClientId,
   } = useGoogleAuth()
 
-  const { connected: agentConnected, call: callAgent } = useDesktopAgent()
+  const { connected: agentConnected, call: callAgent, onHotword } = useDesktopAgent()
   const { executeTools } = useToolExecutor({ callAgent })
   const { sendMessage, error } = useAIChat({ honesty, apiKey, profile, toolExecutor: executeTools })
   const { speak, stop: stopSpeaking, unlock, isElevenLabs } = useTTS()
@@ -142,6 +142,9 @@ export default function App() {
       setAppState('listening')
     })
   }
+
+  // Register Porcupine hotword callback — fires handleWakeWord when agent detects "Hey TARS"
+  useEffect(() => { onHotword(handleWakeWord) }, [onHotword])
 
   // ── Sleep word handler (from wake-word hook, while convMode is false) ───────
   // This fires if the user says a sleep word while in standby — just ignore it.

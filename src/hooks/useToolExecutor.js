@@ -125,26 +125,81 @@ async function callDesktopTool(name, args, callAgent) {
     return browserTimer(parseInt(args.seconds), args.label || 'Timer')
   }
 
-  if (!callAgent) throw new Error('Desktop agent offline. Run start-tars.sh for app/system control.')
+  if (!callAgent) throw new Error('Desktop agent offline. Run start-tars.sh for system control.')
   switch (name) {
+    // ── App control ─────────────────────────────────────────────────────────
     case 'desktop_app_open':   return callAgent('app_open',   args)
     case 'desktop_app_close':  return callAgent('app_close',  args)
     case 'desktop_app_switch': return callAgent('app_switch', args)
     case 'desktop_app_list':   return callAgent('app_list',   {})
-    case 'desktop_screenshot': return callAgent('screenshot', {})
+    case 'desktop_screenshot': return callAgent('screenshot', { mode: args.mode || 'full' })
+
+    // ── Spotify ──────────────────────────────────────────────────────────────
+    case 'desktop_spotify': {
+      const { action, query, volume } = args
+      if (action === 'play')    return callAgent('spotify_play', {})
+      if (action === 'pause')   return callAgent('spotify_pause', {})
+      if (action === 'next')    return callAgent('spotify_next', {})
+      if (action === 'prev')    return callAgent('spotify_prev', {})
+      if (action === 'current') return callAgent('spotify_current', {})
+      if (action === 'search')  return callAgent('spotify_search', { query })
+      if (volume !== undefined) return callAgent('spotify_volume', { level: volume })
+      throw new Error(`Unknown Spotify action: ${action}`)
+    }
+
+    // ── YouTube / VLC ─────────────────────────────────────────────────────
+    case 'desktop_youtube': {
+      const { action, query } = args
+      if (action === 'play')   return callAgent('youtube_play',   { query })
+      if (action === 'pause')  return callAgent('youtube_pause',  {})
+      if (action === 'resume') return callAgent('youtube_resume', {})
+      if (action === 'stop')   return callAgent('youtube_stop',   {})
+      throw new Error(`Unknown YouTube action: ${action}`)
+    }
+
+    // ── Media (legacy) ────────────────────────────────────────────────────
     case 'desktop_media': {
-      const map = { play_pause: 'media_playpause', next: 'media_next', prev: 'media_prev', current: 'media_current' }
+      const map = { play_pause: 'media_playpause', next: 'media_next',
+                    prev: 'media_prev', current: 'media_current' }
       return callAgent(map[args.action] ?? args.action, {})
     }
+
+    // ── Volume ────────────────────────────────────────────────────────────
     case 'desktop_volume':
-      if (args.mute  !== undefined) return callAgent('volume_mute', { muted: args.mute })
-      if (args.level !== undefined) return callAgent('volume_set',  { level: args.level })
+      if (args.mute    !== undefined) return callAgent('volume_mute',   { muted: args.mute })
+      if (args.level   !== undefined) return callAgent('volume_set',    { level: args.level })
+      if (args.delta   !== undefined) return callAgent('volume_change', { delta: args.delta })
       return callAgent('volume_get', {})
+
+    // ── Brightness ────────────────────────────────────────────────────────
+    case 'desktop_brightness':
+      if (args.delta !== undefined) return callAgent('brightness_change', { delta: args.delta })
+      if (args.level !== undefined) return callAgent('brightness_set',    { level: args.level })
+      throw new Error('Provide level (0.0–1.0) or delta')
+
+    // ── Window ────────────────────────────────────────────────────────────
+    case 'desktop_window': {
+      const { action, width, height } = args
+      if (action === 'fullscreen')    return callAgent('window_fullscreen', { enable: true })
+      if (action === 'unfullscreen')  return callAgent('window_fullscreen', { enable: false })
+      if (action === 'minimize')      return callAgent('window_minimize', {})
+      if (action === 'restore')       return callAgent('window_restore',  {})
+      if (action === 'snap_left')     return callAgent('window_snap', { direction: 'left' })
+      if (action === 'snap_right')    return callAgent('window_snap', { direction: 'right' })
+      if (action === 'resize')        return callAgent('window_resize', { width, height })
+      if (action === 'move_monitor')  return callAgent('window_move', {})
+      throw new Error(`Unknown window action: ${action}`)
+    }
+
+    // ── File / Search ─────────────────────────────────────────────────────
     case 'desktop_file_open':   return callAgent('file_open',    args)
     case 'desktop_spotlight':   return callAgent('spotlight',    args)
-    case 'desktop_dnd':         return callAgent('dnd',          args)
-    case 'desktop_battery':     return callAgent('battery',      {})
-    case 'desktop_lock':        return callAgent('lock_screen',  {})
+
+    // ── System ────────────────────────────────────────────────────────────
+    case 'desktop_dnd':     return callAgent('dnd',         args)
+    case 'desktop_battery': return callAgent('battery',     {})
+    case 'desktop_lock':    return callAgent('lock_screen', {})
+
     default: throw new Error(`Unknown desktop tool: ${name}`)
   }
 }

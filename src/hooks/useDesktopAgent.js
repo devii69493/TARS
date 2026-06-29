@@ -6,10 +6,11 @@ const CALL_TIMEOUT   = 30000
 
 export function useDesktopAgent() {
   const [connected, setConnected]   = useState(false)
-  const wsRef       = useRef(null)
-  const pendingRef  = useRef({})      // id → { resolve, reject, timer }
-  const reconnRef   = useRef(null)
-  const mountedRef  = useRef(true)
+  const wsRef        = useRef(null)
+  const pendingRef   = useRef({})      // id → { resolve, reject, timer }
+  const reconnRef    = useRef(null)
+  const mountedRef   = useRef(true)
+  const hotwordCbRef = useRef(null)    // callback fired on hotword message
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
@@ -27,7 +28,12 @@ export function useDesktopAgent() {
 
     ws.onmessage = ({ data }) => {
       try {
-        const msg     = JSON.parse(data)
+        const msg = JSON.parse(data)
+        // Server-push: hotword detected
+        if (msg.type === 'hotword') {
+          hotwordCbRef.current?.()
+          return
+        }
         const pending = pendingRef.current[msg.id]
         if (!pending) return
         clearTimeout(pending.timer)
@@ -80,5 +86,7 @@ export function useDesktopAgent() {
     })
   }, [])
 
-  return { connected, call }
+  const onHotword = useCallback((cb) => { hotwordCbRef.current = cb }, [])
+
+  return { connected, call, onHotword }
 }

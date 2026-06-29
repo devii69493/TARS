@@ -275,6 +275,72 @@ export const DESKTOP_TOOLS = [
       parameters: { type: 'object', properties: {} },
     },
   },
+  // ── Spotify ──────────────────────────────────────────────────────────────
+  {
+    type: 'function',
+    function: {
+      name: 'desktop_spotify',
+      description: 'Control Spotify. action: play, pause, next, prev, current, search. For search include query.',
+      parameters: {
+        type: 'object',
+        properties: {
+          action: { type: 'string', enum: ['play', 'pause', 'next', 'prev', 'current', 'search'] },
+          query:  { type: 'string', description: 'Search query (artist, track, album). Required for action=search.' },
+          volume: { type: 'number', description: 'Set Spotify volume 0–100. Omit for other actions.' },
+        },
+        required: ['action'],
+      },
+    },
+  },
+  // ── YouTube via yt-dlp + VLC ──────────────────────────────────────────────
+  {
+    type: 'function',
+    function: {
+      name: 'desktop_youtube',
+      description: 'Stream YouTube via VLC. action: play (needs query), pause, resume, stop. Use for "play X on YouTube".',
+      parameters: {
+        type: 'object',
+        properties: {
+          action: { type: 'string', enum: ['play', 'pause', 'resume', 'stop'] },
+          query:  { type: 'string', description: 'Search query. Required for action=play.' },
+        },
+        required: ['action'],
+      },
+    },
+  },
+  // ── Window management ─────────────────────────────────────────────────────
+  {
+    type: 'function',
+    function: {
+      name: 'desktop_window',
+      description: 'Manage the frontmost window: fullscreen, minimize, restore, snap left/right, resize, move to next monitor.',
+      parameters: {
+        type: 'object',
+        properties: {
+          action:    { type: 'string', enum: ['fullscreen', 'unfullscreen', 'minimize', 'restore', 'snap_left', 'snap_right', 'resize', 'move_monitor'] },
+          width:     { type: 'number', description: 'Width in pixels (resize only)' },
+          height:    { type: 'number', description: 'Height in pixels (resize only)' },
+        },
+        required: ['action'],
+      },
+    },
+  },
+  // ── Brightness ────────────────────────────────────────────────────────────
+  {
+    type: 'function',
+    function: {
+      name: 'desktop_brightness',
+      description: 'Set or adjust screen brightness. level: 0.0–1.0. delta: change by amount (e.g. 0.1 = brighter, -0.1 = dimmer).',
+      parameters: {
+        type: 'object',
+        properties: {
+          level: { type: 'number', description: 'Absolute brightness 0.0–1.0' },
+          delta: { type: 'number', description: 'Relative change (e.g. 0.2 or -0.2)' },
+        },
+      },
+    },
+  },
+  // ── Timer ─────────────────────────────────────────────────────────────────
   {
     type: 'function',
     function: {

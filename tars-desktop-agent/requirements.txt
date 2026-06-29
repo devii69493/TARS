@@ -1,1 +1,10 @@
 websockets>=12.0
+
+# Wake word detection (optional — see README for setup)
+# brew install portaudio  &&  pip3 install pvporcupine pyaudio
+pvporcupine>=3.0.0
+pyaudio>=0.2.11
+
+# YouTube streaming (optional)
+# brew install yt-dlp  &&  brew install --cask vlc
+yt-dlp>=2024.1.0
