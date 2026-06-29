@@ -8,3 +8,10 @@ pyaudio>=0.2.11
 # YouTube streaming (optional)
 # brew install yt-dlp  &&  brew install --cask vlc
 yt-dlp>=2024.1.0
+
+# Screen OCR (optional)
+# brew install tesseract  &&  pip3 install pytesseract pillow
+pytesseract>=0.3.10
+Pillow>=10.0.0
+
+# Local TTS: uses built-in macOS 'say' + 'afconvert' — no extra packages needed

@@ -340,6 +340,47 @@ export const DESKTOP_TOOLS = [
       },
     },
   },
+  // ── Screen OCR ───────────────────────────────────────────────────────────
+  {
+    type: 'function',
+    function: {
+      name: 'desktop_ocr',
+      description: 'Take a screenshot and read all text on screen using OCR. Use for "what does this say?", "read the screen", "what\'s on my screen?". Returns raw text for you to interpret.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  // ── Natural language file search ──────────────────────────────────────────
+  {
+    type: 'function',
+    function: {
+      name: 'desktop_file_search_natural',
+      description: 'Search files by content/description using Spotlight. Use for "find my essay about Napoleon", "where\'s my guitar tab", "find files I edited last week". Returns top 5 matching files.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query:       { type: 'string', description: 'Keywords describing the file content or topic' },
+          time_filter: { type: 'string', enum: ['today', 'this_week', 'this_month', ''], description: 'Optional: restrict by modification date' },
+          limit:       { type: 'number', description: 'Max results (default 5)' },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  // ── Reminder offset ───────────────────────────────────────────────────────
+  {
+    type: 'function',
+    function: {
+      name: 'desktop_reminder_offset',
+      description: 'Set how many minutes before an event TARS announces it. Default is 10 minutes.',
+      parameters: {
+        type: 'object',
+        properties: {
+          minutes: { type: 'number', description: 'Minutes before event to announce (e.g. 5, 10, 15)' },
+        },
+        required: ['minutes'],
+      },
+    },
+  },
   // ── Timer ─────────────────────────────────────────────────────────────────
   {
     type: 'function',

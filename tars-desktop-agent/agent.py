@@ -1,5 +1,5 @@
 #!/usr/bin/env /usr/bin/python3
-"""TARS Desktop Agent — Phase 2B: Full OS Control."""
+"""TARS Desktop Agent — Phase 2C: Advanced."""
 
 import asyncio
 import base64
@@ -8,6 +8,7 @@ import os
 import struct
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import urllib.parse
@@ -461,6 +462,97 @@ end tell
         raise RuntimeError("Could not move window — check display configuration")
 
 
+# ── Local TTS via macOS 'say' ─────────────────────────────────────────────────
+
+def tts_synthesize(text: str) -> dict:
+    """Synthesize speech with macOS neural TTS. Returns base64 WAV."""
+    aiff = tempfile.mktemp(suffix='.aiff')
+    wav  = tempfile.mktemp(suffix='.wav')
+    try:
+        # Try high-quality voices in order; fall through to system default
+        for voice in ['Evan (Premium)', 'Nathan (Premium)', 'Evan', 'Samantha', '']:
+            args = ['say', '-o', aiff]
+            if voice:
+                args += ['-v', voice]
+            args.append(text)
+            r = subprocess.run(args, capture_output=True, timeout=20)
+            if r.returncode == 0:
+                break
+        # AIFF → WAV (browser-compatible)
+        subprocess.run(
+            ['afconvert', '-f', 'WAVE', '-d', 'LEI16@22050', aiff, wav],
+            check=True, timeout=10
+        )
+        with open(wav, 'rb') as f:
+            audio_b64 = base64.b64encode(f.read()).decode()
+        return {'audio': audio_b64, 'format': 'wav'}
+    finally:
+        for p in [aiff, wav]:
+            try: os.unlink(p)
+            except: pass
+
+
+# ── Screen OCR ────────────────────────────────────────────────────────────────
+
+def screen_ocr() -> str:
+    """Screenshot + OCR. Requires: pip install pytesseract pillow && brew install tesseract"""
+    try:
+        import pytesseract
+        from PIL import Image
+    except ImportError:
+        raise RuntimeError(
+            "OCR not installed. Run: pip3 install pytesseract pillow && brew install tesseract"
+        )
+    path = tempfile.mktemp(suffix='.png')
+    try:
+        subprocess.run(['screencapture', '-x', path], check=True, timeout=8)
+        img  = Image.open(path)
+        text = pytesseract.image_to_string(img)
+        return text.strip() or "(No text found on screen)"
+    finally:
+        try: os.unlink(path)
+        except: pass
+
+
+# ── Natural language file search ──────────────────────────────────────────────
+
+def file_search_natural(query: str, time_filter: str = '', limit: int = 5) -> list:
+    """
+    Search files by content/description via Spotlight (mdfind).
+    time_filter: 'today' | 'this_week' | 'this_month' | ''
+    """
+    home = os.path.expanduser('~')
+
+    if time_filter == 'today':
+        date_clause = 'kMDItemFSContentChangeDate >= $time.today'
+    elif time_filter == 'this_week':
+        date_clause = 'kMDItemFSContentChangeDate >= $time.now(-7d)'
+    elif time_filter == 'this_month':
+        date_clause = 'kMDItemFSContentChangeDate >= $time.now(-30d)'
+    else:
+        date_clause = None
+
+    mdfind_query = f'({query}) && {date_clause}' if date_clause else query
+
+    r = subprocess.run(
+        ['mdfind', '-onlyin', home, mdfind_query],
+        capture_output=True, text=True, timeout=12
+    )
+    paths = [
+        p for p in r.stdout.strip().split('\n')
+        if p and not any(skip in p for skip in ['/Library/Caches/', '/.Trash/', '/node_modules/'])
+    ]
+
+    out = []
+    for path in paths[:limit]:
+        try:
+            stat = os.stat(path)
+            out.append({'path': path, 'name': os.path.basename(path), 'modified': int(stat.st_mtime)})
+        except:
+            out.append({'path': path, 'name': os.path.basename(path), 'modified': 0})
+    return out
+
+
 # ── Porcupine hotword detection (optional) ────────────────────────────────────
 
 def start_hotword_detection():
@@ -589,6 +681,14 @@ def dispatch(tool: str, args: dict):
     elif tool == "window_resize":     return window_resize(int(args["width"]), int(args["height"]))
     elif tool == "window_move":       return window_move_monitor(args.get("target", "next"))
 
+    # Phase 2C
+    elif tool == "tts_synthesize":      return tts_synthesize(str(args["text"]))
+    elif tool == "screen_ocr":          return screen_ocr()
+    elif tool == "file_search_natural": return file_search_natural(
+                                            str(args["query"]),
+                                            str(args.get("time_filter", "")),
+                                            int(args.get("limit", 5)),
+                                        )
     else:
         raise ValueError(f"Unknown tool: {tool}")
 

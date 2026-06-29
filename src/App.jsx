@@ -8,6 +8,8 @@ import { useGoogleAuth } from './hooks/useGoogleAuth'
 import { useToolExecutor } from './hooks/useToolExecutor'
 import { useWakeWord, SLEEP_WORDS, matchWord } from './hooks/useWakeWord'
 import { useDesktopAgent } from './hooks/useDesktopAgent'
+import { useProactiveReminders } from './hooks/useProactiveReminders'
+import { usePatternLearning } from './hooks/usePatternLearning'
 import { getApiKey } from './lib/aiConfig'
 import { loadProfile, saveProfile, clearProfile } from './lib/readmeProfile'
 import {
@@ -70,6 +72,8 @@ export default function App() {
   const [showSettings,  setShowSettings]   = useState(!apiKey)
   const [profile,       setProfile]        = useState(() => loadProfile())
   const [audioUnlocked, setAudioUnlocked]  = useState(false)
+  const [voiceMode,     setVoiceMode]      = useState(() => localStorage.getItem('tars_voice') || 'elevenlabs')
+  const [reminderBanner, setReminderBanner] = useState(null)
 
   const historyRef  = useRef(savedMessages.map(m => ({ role: m.role, content: m.content })))
   const convModeRef = useRef(false)
@@ -85,9 +89,18 @@ export default function App() {
   } = useGoogleAuth()
 
   const { connected: agentConnected, call: callAgent, onHotword } = useDesktopAgent()
-  const { executeTools } = useToolExecutor({ callAgent })
+  const { speak, stop: stopSpeaking, unlock, isElevenLabs, isLocal } = useTTS({ voiceMode, callAgent })
+
+  // Pattern learning — records tool usage and suggests habits on next session
+  const speakRef = useRef(speak)
+  useEffect(() => { speakRef.current = speak }, [speak])
+  const { recordTool } = usePatternLearning({
+    audioUnlocked,
+    onSuggestion: useCallback((text) => { speakRef.current?.(text, () => {}) }, []),
+  })
+
+  const { executeTools } = useToolExecutor({ callAgent, onToolComplete: recordTool })
   const { sendMessage, error } = useAIChat({ honesty, apiKey, profile, toolExecutor: executeTools })
-  const { speak, stop: stopSpeaking, unlock, isElevenLabs } = useTTS()
 
   const handleUnlock = useCallback(() => {
     unlock()
@@ -145,6 +158,23 @@ export default function App() {
 
   // Register Porcupine hotword callback — fires handleWakeWord when agent detects "Hey TARS"
   useEffect(() => { onHotword(handleWakeWord) }, [onHotword])
+
+  // ── Proactive reminders ─────────────────────────────────────────────────────
+  useProactiveReminders({
+    googleConnected,
+    onReminder: useCallback((title, minsAway) => {
+      const text = `${title} in ${minsAway} minute${minsAway === 1 ? '' : 's'}, Sir.`
+      setReminderBanner(`◈ ${title} in ${minsAway} min`)
+      speakRef.current?.(text, () => {})
+      setTimeout(() => setReminderBanner(null), 9000)
+    }, []),
+  })
+
+  // ── Voice mode handler ──────────────────────────────────────────────────────
+  const handleVoiceModeChange = useCallback((mode) => {
+    setVoiceMode(mode)
+    localStorage.setItem('tars_voice', mode)
+  }, [])
 
   // ── Sleep word handler (from wake-word hook, while convMode is false) ───────
   // This fires if the user says a sleep word while in standby — just ignore it.
@@ -292,6 +322,12 @@ export default function App() {
           {isElevenLabs && (
             <div className="voice-active-badge">◈ ELEVENLABS VOICE</div>
           )}
+          {isLocal && (
+            <div className="voice-active-badge">◈ LOCAL VOICE</div>
+          )}
+          {reminderBanner && (
+            <div className="reminder-banner">{reminderBanner}</div>
+          )}
 
           <div className={`agent-badge agent-badge--${agentConnected ? 'on' : 'off'}`}>
             {agentConnected ? '◈ DESKTOP ONLINE' : '◎ DESKTOP OFFLINE'}
@@ -349,6 +385,9 @@ export default function App() {
         googleClientId={googleClientId}
         onGoogleConnect={connectGoogle}
         onGoogleDisconnect={disconnectGoogle}
+        voiceMode={voiceMode}
+        onVoiceModeChange={handleVoiceModeChange}
+        agentConnected={agentConnected}
       />
     </div>
   )

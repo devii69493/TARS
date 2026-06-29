@@ -200,12 +200,27 @@ async function callDesktopTool(name, args, callAgent) {
     case 'desktop_battery': return callAgent('battery',     {})
     case 'desktop_lock':    return callAgent('lock_screen', {})
 
+    // ── Phase 2C ──────────────────────────────────────────────────────────
+    case 'desktop_ocr':
+      return callAgent('screen_ocr', {})
+    case 'desktop_file_search_natural':
+      return callAgent('file_search_natural', {
+        query:       args.query,
+        time_filter: args.time_filter || '',
+        limit:       args.limit || 5,
+      })
+    case 'desktop_reminder_offset': {
+      const mins = Math.max(1, parseInt(args.minutes, 10))
+      localStorage.setItem('tars_reminder_offset', String(mins))
+      return `Reminder set: ${mins} minutes before events.`
+    }
+
     default: throw new Error(`Unknown desktop tool: ${name}`)
   }
 }
 
 // ── Tool executor ──────────────────────────────────────────────────────────
-export function useToolExecutor({ callAgent } = {}) {
+export function useToolExecutor({ callAgent, onToolComplete } = {}) {
   async function executeTools(toolCalls) {
     return Promise.all(toolCalls.map(async (tc) => {
       const { name, arguments: argsStr } = tc.function
@@ -267,6 +282,8 @@ export function useToolExecutor({ callAgent } = {}) {
             }
         }
 
+        // Pattern learning — record successful tool calls
+        onToolComplete?.(name, args)
         return { id: tc.id, name, result }
       } catch (err) {
         return { id: tc.id, name, result: { error: err.message } }

@@ -39,6 +39,9 @@ TOOLS — use without asking:
 - desktop_spotify: Spotify control and search. desktop_youtube: stream via VLC.
 - desktop_window: fullscreen, minimize, snap, resize.
 - desktop_brightness: set/adjust screen brightness (needs agent + brew install brightness).
+- desktop_ocr: call for "what does this say?", "read the screen", "what's on my screen?" — returns raw OCR text for you to interpret.
+- desktop_file_search_natural: call for "find my essay about X", "where's my guitar tab", "files I edited last week". Include time_filter if mentioned.
+- desktop_reminder_offset: call when Devraj says "remind me X minutes before" to change calendar reminder timing.
 - Other desktop_* tools need the local agent (start-tars.sh). If they error, say so plainly.
 - For "play X on Spotify" → desktop_spotify action=search. For "play X on YouTube" → desktop_youtube action=play.
 - Tool errors: tell Devraj plainly.${profileSection}`
@@ -56,7 +59,7 @@ function selectTools(message) {
   const needsGmail    = /\b(email|gmail|inbox|send|draft|unread|mail)\b/.test(m)
   const needsCalendar = /\b(calendar|schedule|event|meeting|today|tomorrow|appointment)\b/.test(m)
   const needsSearch   = /\b(search|news|score|price|weather|current|latest|who |what |when |where |how much)\b/.test(m)
-  const needsDesktop  = /\b(open|close|quit|launch|app|music|spotify|youtube|vlc|play|pause|resume|skip|volume|mute|screenshot|file|folder|spotlight|dnd|disturb|battery|lock|timer|brightness|bright|dim|screen|window|fullscreen|minimize|snap|monitor)\b/.test(m)
+  const needsDesktop  = /\b(open|close|quit|launch|app|music|spotify|youtube|vlc|play|pause|resume|skip|volume|mute|screenshot|file|folder|spotlight|dnd|disturb|battery|lock|timer|brightness|bright|dim|screen|window|fullscreen|minimize|snap|monitor|ocr|read|what.*say|what.*screen|find.*file|find.*essay|find.*document|find.*tab|remind|reminder)\b/.test(m)
 
   if (!needsGmail && !needsCalendar && !needsSearch && !needsDesktop) return []
 

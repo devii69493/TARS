@@ -26,6 +26,10 @@ export function SidePanel({
   googleClientId,
   onGoogleConnect,
   onGoogleDisconnect,
+  // Voice
+  voiceMode,
+  onVoiceModeChange,
+  agentConnected,
 }) {
   const fileInputRef = useRef(null)
 
@@ -128,6 +132,29 @@ export function SidePanel({
             )}
           </div>
 
+          {/* Voice output */}
+          <div className="settings-section">
+            <div className="settings-label">VOICE OUTPUT</div>
+            <div className="voice-mode-row">
+              {[
+                { id: 'elevenlabs', label: 'ELEVENLABS' },
+                { id: 'local',     label: 'LOCAL (MACOS)' },
+                { id: 'browser',   label: 'BROWSER' },
+              ].map(({ id, label }) => (
+                <button
+                  key={id}
+                  className={`voice-mode-btn${voiceMode === id ? ' voice-mode-btn--active' : ''}`}
+                  onClick={() => onVoiceModeChange(id)}
+                  title={id === 'local' && !agentConnected ? 'Requires desktop agent' : ''}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {voiceMode === 'local' && !agentConnected && (
+              <div className="settings-hint">Agent offline — run start-tars.sh</div>
+            )}
+          </div>
 
         </div>
       )}

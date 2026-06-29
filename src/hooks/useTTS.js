@@ -43,15 +43,15 @@ function pickVoice(list) {
 }
 
 // ── Unified TTS hook ───────────────────────────────────────────────────────
-// Tries ElevenLabs first (if ELEVENLABS_ENABLED + keys present).
-// Automatically falls back to Web Speech Synthesis on any failure.
-export function useTTS() {
+// voiceMode: 'elevenlabs' | 'local' | 'browser'
+// callAgent:  the call() function from useDesktopAgent (needed for 'local' mode)
+export function useTTS({ voiceMode = 'elevenlabs', callAgent = null } = {}) {
   const [isSpeaking,   setIsSpeaking]   = useState(false)
   const [isElevenLabs, setIsElevenLabs] = useState(false)
   const [voices,       setVoices]       = useState([])
 
-  const audioRef = useRef(null)   // current HTMLAudioElement (ElevenLabs)
-  const abortRef = useRef(null)   // current fetch AbortController
+  const audioRef    = useRef(null)   // current HTMLAudioElement
+  const abortRef    = useRef(null)   // current fetch AbortController
 
   // Web Speech voice list
   useEffect(() => {
@@ -203,12 +203,37 @@ export function useTTS() {
     }
   }, [speakWebSpeech])
 
+  // ── Local TTS (macOS 'say' via agent) ────────────────────────────────────
+  const speakLocal = useCallback(async (text, onEnd) => {
+    if (!callAgent) { speakWebSpeech(text, onEnd); return }
+    // Stop anything playing
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current = null
+    }
+    try {
+      const clean  = stripMarkdown(text)
+      const result = await callAgent('tts_synthesize', { text: clean })
+      const audio  = new Audio(`data:audio/wav;base64,${result.audio}`)
+      audioRef.current = audio
+      audio.onplay  = () => setIsSpeaking(true)
+      audio.onended = () => { audioRef.current = null; setIsSpeaking(false); onEnd?.() }
+      audio.onerror = () => { audioRef.current = null; setIsSpeaking(false); speakWebSpeech(text, onEnd) }
+      await audio.play()
+    } catch {
+      speakWebSpeech(text, onEnd)
+    }
+  }, [callAgent, speakWebSpeech])
+
   // ── Unified speak ──────────────────────────────────────────────────────────
   const speak = useCallback((text, onEnd) => {
+    if (voiceMode === 'local')    { speakLocal(text, onEnd); return }
+    if (voiceMode === 'browser')  { speakWebSpeech(text, onEnd); return }
+    // 'elevenlabs' (default) — falls back to browser if keys missing
     const useEL = ELEVENLABS_ENABLED && EL_API_KEY && EL_VOICE_ID
     if (useEL) speakElevenLabs(text, onEnd)
     else       speakWebSpeech(text, onEnd)
-  }, [speakElevenLabs, speakWebSpeech])
+  }, [voiceMode, speakLocal, speakElevenLabs, speakWebSpeech])
 
   // ── stop() ─────────────────────────────────────────────────────────────────
   const stop = useCallback(() => {
@@ -226,5 +251,6 @@ export function useTTS() {
     setIsElevenLabs(false)
   }, [])
 
-  return { speak, stop, unlock, isSpeaking, isElevenLabs }
+  const isLocal = voiceMode === 'local'
+  return { speak, stop, unlock, isSpeaking, isElevenLabs, isLocal }
 }

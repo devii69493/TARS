@@ -167,6 +167,48 @@ body {
   background: transparent;
 }
 
+/* ── Reminder banner ──────────────────────────────────────────────── */
+.reminder-banner {
+  font-size: 8px;
+  letter-spacing: 0.25em;
+  padding: 4px 14px;
+  border: 1px solid rgba(245, 166, 35, 0.45);
+  border-radius: 2px;
+  color: var(--amber);
+  background: rgba(245, 166, 35, 0.07);
+  white-space: nowrap;
+  animation: reminder-fade 9s ease-in-out forwards;
+}
+
+@keyframes reminder-fade {
+  0%   { opacity: 0; transform: translateY(-4px); }
+  8%   { opacity: 1; transform: none; }
+  80%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ── Voice mode buttons (Settings) ───────────────────────────────── */
+.voice-mode-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.voice-mode-btn {
+  background: none;
+  border: 1px solid rgba(245, 166, 35, 0.22);
+  color: rgba(245, 166, 35, 0.45);
+  font-family: var(--font);
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  padding: 4px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.voice-mode-btn:hover         { border-color: rgba(245, 166, 35, 0.5); color: var(--amber); }
+.voice-mode-btn--active       { border-color: var(--amber); color: var(--amber); background: rgba(245, 166, 35, 0.08); }
+
 .mic-btn {
   width: 58px;
   height: 58px;
