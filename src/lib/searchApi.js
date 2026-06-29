@@ -1,4 +1,4 @@
-const SEARCH_KEY = import.meta.env.VITE_SEARCH_API_KEY || ''
+const TAVILY_KEY = import.meta.env.VITE_TAVILY_API_KEY || ''
 
 export async function webSearch(query) {
   if (!query?.trim()) throw new Error('Search query is empty')
@@ -6,7 +6,7 @@ export async function webSearch(query) {
   const res = await fetch('/.netlify/functions/search', {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ query: query.trim(), apiKey: SEARCH_KEY }),
+    body:    JSON.stringify({ query: query.trim(), apiKey: TAVILY_KEY }),
   })
 
   const data = await res.json()

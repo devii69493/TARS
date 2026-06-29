@@ -626,12 +626,74 @@ body {
   50%       { box-shadow: 0 0 24px rgba(245, 166, 35, 0.32); }
 }
 
+/* ── Prevent double-tap zoom on all interactive elements ──────────── */
+button, input, select { touch-action: manipulation; }
+
 /* ── Narrow screens ───────────────────────────────────────────────── */
 @media (max-width: 700px) {
   .side-panel { width: 240px; }
 }
+
 @media (max-width: 520px) {
-  .app        { flex-direction: column; }
-  .side-panel { width: 100%; height: 220px; border-left: none; border-top: 1px solid var(--border); }
-  .hud-area   { flex: 1; }
+  /* Use dvh so iOS Safari bottom bar doesn't clip content */
+  html, body, #root { height: 100dvh; overflow: hidden; }
+
+  .app {
+    flex-direction: column;
+    height: 100dvh;
+  }
+
+  /* HUD fills remaining height above the panel */
+  .hud-area { flex: 1; min-height: 0; }
+
+  /* Panel sits at the bottom — tall enough for chat + controls */
+  .side-panel {
+    width: 100%;
+    height: 310px;
+    flex-shrink: 0;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Bigger mic button — comfortable thumb target */
+  .mic-btn {
+    width: 72px;
+    height: 72px;
+    font-size: 26px;
+  }
+
+  /* Taller conversation / end buttons */
+  .conv-btn { padding: 11px 22px; font-size: 10px; }
+
+  /* Fatter settings buttons */
+  .settings-btn { padding: 9px 15px; font-size: 9px; }
+
+  /* Bigger gear icon */
+  .icon-btn { padding: 8px 10px; font-size: 16px; }
+
+  /* Audio gate — full screen, comfortable tap area */
+  .audio-gate-btn { padding: 20px 44px; font-size: 12px; }
+  .audio-gate-id  { font-size: 22px; }
+
+  /* Text input row */
+  .side-input      { height: 38px; font-size: 13px; }
+  .side-send       { width: 48px; height: 38px; font-size: 15px; }
+
+  /* Chat log — momentum scrolling on iOS */
+  .chat-log {
+    -webkit-overflow-scrolling: touch;
+    padding: 8px 10px;
+  }
+
+  /* Slightly larger message text on small screens */
+  .message-text { font-size: 12px; }
+
+  /* Make the settings section scrollable if needed */
+  .settings-panel { overflow-y: auto; max-height: 220px; }
+
+  /* VOICE ACTIVE badge - smaller on mobile */
+  .voice-active-badge { font-size: 7px; padding: 3px 9px; }
+
+  /* Listen badge spacing */
+  .mic-overlay { gap: 9px; bottom: 20px; }
 }

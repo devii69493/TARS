@@ -1,6 +1,6 @@
-// Brave Search API proxy — keeps the API key off the client bundle.
+// Tavily Search API proxy — keeps the key off the client bundle.
 // Accepts POST { query: string, apiKey?: string }
-// Uses SEARCH_API_KEY env var first (Netlify dashboard), falls back to client-provided key.
+// Uses TAVILY_API_KEY env var first (Netlify dashboard), falls back to client key.
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' }
@@ -13,11 +13,11 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON body' }) }
   }
 
-  const key = process.env.SEARCH_API_KEY || clientKey
+  const key = process.env.TAVILY_API_KEY || clientKey
   if (!key) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'No search API key configured. Set SEARCH_API_KEY in Netlify env vars.' }),
+      body: JSON.stringify({ error: 'No search API key. Set TAVILY_API_KEY in Netlify env vars.' }),
     }
   }
 
@@ -26,13 +26,16 @@ exports.handler = async (event) => {
   }
 
   try {
-    const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=6&text_decorations=false`
-    const res = await fetch(url, {
-      headers: {
-        Accept:               'application/json',
-        'Accept-Encoding':    'gzip',
-        'X-Subscription-Token': key,
-      },
+    const res = await fetch('https://api.tavily.com/search', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key:        key,
+        query:          query.trim(),
+        search_depth:   'basic',
+        max_results:    5,
+        include_answer: true,
+      }),
     })
 
     const data = await res.json()
@@ -40,16 +43,20 @@ exports.handler = async (event) => {
     if (!res.ok) {
       return {
         statusCode: res.status,
-        body: JSON.stringify({ error: data.message || `Brave API error ${res.status}` }),
+        body: JSON.stringify({ error: data.error?.message || `Tavily error ${res.status}` }),
       }
     }
 
-    // Return only what TARS needs — title, url, description for each result
-    const results = (data.web?.results || []).map(r => ({
+    const results = (data.results || []).map(r => ({
       title:       r.title,
       url:         r.url,
-      description: r.description || '',
+      description: (r.content || r.snippet || '').slice(0, 220),
     }))
+
+    // Prepend Tavily's synthesised direct answer when present
+    if (data.answer) {
+      results.unshift({ title: 'Direct answer', url: '', description: data.answer })
+    }
 
     return {
       statusCode: 200,
