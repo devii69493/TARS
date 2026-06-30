@@ -3,10 +3,20 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+TARS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PYTHON="$(which python3)"
 PLIST="$HOME/Library/LaunchAgents/com.tars.agent.plist"
+TOKEN_FILE="$TARS_DIR/.tars-token"
 
 echo "Installing TARS Desktop Agent…"
+
+# Generate token if needed
+if [ ! -f "$TOKEN_FILE" ]; then
+  openssl rand -hex 16 > "$TOKEN_FILE"
+  chmod 600 "$TOKEN_FILE"
+  echo "  Generated new security token → .tars-token"
+fi
+TARS_TOKEN=$(cat "$TOKEN_FILE")
 
 # Install Python deps (websockets is required; others are optional)
 echo "  Installing Python dependencies…"
@@ -39,6 +49,8 @@ cat > "$PLIST" << EOF
     <dict>
         <key>PATH</key>
         <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>TARS_TOKEN</key>
+        <string>$TARS_TOKEN</string>
     </dict>
 </dict>
 </plist>
@@ -51,6 +63,7 @@ launchctl load "$PLIST"
 echo ""
 echo "  TARS agent installed and running."
 echo "  It will start automatically on every login."
-echo "  Logs: /tmp/tars-agent-out.log"
+echo "  Token : $TARS_TOKEN"
+echo "  Logs  : /tmp/tars-agent-out.log"
 echo ""
 echo "  To uninstall: ./uninstall-agent.sh"

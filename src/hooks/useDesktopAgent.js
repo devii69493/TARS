@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 const DEFAULT_AGENT_URL = 'ws://localhost:7354'
+
 function getAgentUrl() {
-  return localStorage.getItem('tars_agent_url') || DEFAULT_AGENT_URL
+  const base  = localStorage.getItem('tars_agent_url') || DEFAULT_AGENT_URL
+  const token = localStorage.getItem('tars_agent_token') || ''
+  if (!token) return base
+  const sep = base.includes('?') ? '&' : '?'
+  return `${base}${sep}token=${encodeURIComponent(token)}`
 }
 const RECONNECT_MS   = 3000
 const CALL_TIMEOUT   = 30000
@@ -95,9 +100,15 @@ export function useDesktopAgent() {
     const clean = url.trim()
     if (clean) localStorage.setItem('tars_agent_url', clean)
     else        localStorage.removeItem('tars_agent_url')
-    // Force reconnect with new URL
     wsRef.current?.close()
   }, [])
 
-  return { connected, call, onHotword, setAgentUrl }
+  const setAgentToken = useCallback((token) => {
+    const clean = token.trim()
+    if (clean) localStorage.setItem('tars_agent_token', clean)
+    else        localStorage.removeItem('tars_agent_token')
+    wsRef.current?.close()
+  }, [])
+
+  return { connected, call, onHotword, setAgentUrl, setAgentToken }
 }

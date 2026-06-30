@@ -7,6 +7,7 @@ const K = {
   humour:      'tars_humour',
   seriousness: 'tars_seriousness',
   apiKey:      'tars_api_key',
+  agentToken:  'tars_agent_token',
   gToken:      'tars_g_token',
   gExpiry:     'tars_g_expiry',
 }
@@ -84,6 +85,18 @@ export function saveApiKey(key) {
 
 export function loadApiKey() {
   try { return localStorage.getItem(K.apiKey) || '' } catch { return '' }
+}
+
+// ── Agent token ───────────────────────────────────────────────────────────────
+export function saveAgentToken(token) {
+  try {
+    if (token) localStorage.setItem(K.agentToken, token)
+    else        localStorage.removeItem(K.agentToken)
+  } catch {}
+}
+
+export function loadAgentToken() {
+  try { return localStorage.getItem(K.agentToken) || '' } catch { return '' }
 }
 
 // ── Google OAuth token ─────────────────────────────────────────────────────

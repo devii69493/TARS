@@ -19,8 +19,19 @@ except ImportError:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "websockets>=12.0", "-q"])
     import websockets
 
-HOST = "localhost"
+HOST = "0.0.0.0"
 PORT = 7354
+
+def _lan_ip() -> str:
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "unknown"
 
 # ── Connected clients (for broadcast) ─────────────────────────────────────────
 CLIENTS = set()
@@ -695,7 +706,19 @@ def dispatch(tool: str, args: dict):
 
 # ── WebSocket handler ─────────────────────────────────────────────────────────
 
+_REQUIRED_TOKEN = os.environ.get("TARS_TOKEN", "")
+
 async def handler(websocket):
+    # Token auth — check ?token=... query param when TARS_TOKEN is set
+    if _REQUIRED_TOKEN:
+        path   = getattr(websocket, "path", "/")
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(path).query)
+        given  = params.get("token", [""])[0]
+        if given != _REQUIRED_TOKEN:
+            print(f"[TARS agent] rejected — bad or missing token")
+            await websocket.close(1008, "Unauthorized")
+            return
+
     CLIENTS.add(websocket)
     print(f"[TARS agent] connected  ({len(CLIENTS)} clients)")
     try:
@@ -730,7 +753,17 @@ async def main():
     global MAIN_LOOP
     MAIN_LOOP = asyncio.get_event_loop()
 
-    print(f"[TARS agent] Phase 2B starting on ws://{HOST}:{PORT}")
+    lan = _lan_ip()
+    tok = _REQUIRED_TOKEN
+    token_suffix = f"?token={tok}" if tok else ""
+
+    print(f"[TARS agent] starting on 0.0.0.0:{PORT}")
+    print(f"[TARS agent] local  → ws://localhost:{PORT}{token_suffix}")
+    print(f"[TARS agent] LAN    → ws://{lan}:{PORT}{token_suffix}")
+    if tok:
+        print(f"[TARS agent] token  → {tok}")
+    else:
+        print(f"[TARS agent] token  → NONE (set TARS_TOKEN env var to secure)")
     start_hotword_detection()
 
     async with websockets.serve(handler, HOST, PORT):

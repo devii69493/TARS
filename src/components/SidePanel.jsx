@@ -42,6 +42,7 @@ export function SidePanel({
   onVoiceModeChange,
   agentConnected,
   onAgentUrlChange,
+  onAgentTokenChange,
 }) {
   const fileInputRef = useRef(null)
 
@@ -144,9 +145,9 @@ export function SidePanel({
             )}
           </div>
 
-          {/* Desktop agent URL */}
+          {/* Desktop agent */}
           <div className="settings-section">
-            <div className="settings-label">DESKTOP AGENT URL</div>
+            <div className="settings-label">DESKTOP AGENT</div>
             <form className="key-form" onSubmit={(e) => {
               e.preventDefault()
               onAgentUrlChange(e.target.elements.agentUrl.value)
@@ -160,8 +161,21 @@ export function SidePanel({
               />
               <button type="submit" className="key-save">SET</button>
             </form>
+            <form className="key-form" style={{ marginTop: 4 }} onSubmit={(e) => {
+              e.preventDefault()
+              onAgentTokenChange(e.target.elements.agentToken.value)
+            }}>
+              <input
+                name="agentToken"
+                type="password"
+                defaultValue={localStorage.getItem('tars_agent_token') || ''}
+                placeholder="Token (from .tars-token)"
+                className="key-input"
+              />
+              <button type="submit" className="key-save">SET</button>
+            </form>
             <div className="settings-hint">
-              {agentConnected ? '◉ CONNECTED' : '◎ OFFLINE'} — for iPad: use Mac IP or ngrok URL
+              {agentConnected ? '◉ CONNECTED' : '◎ OFFLINE'} — run start-tars.sh · use LAN IP or ngrok/cloudflared for remote
             </div>
           </div>
 
