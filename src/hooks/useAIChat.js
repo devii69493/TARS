@@ -4,8 +4,11 @@ import { TOOLS, DESKTOP_TOOLS } from '../lib/tools'
 import { buildProfileSection } from '../lib/readmeProfile'
 
 // ── System prompt (compressed — target <400 tokens) ───────────────────────
-function buildSystemPrompt(honesty, profile) {
-  const h = Math.round(honesty)
+function buildSystemPrompt(honesty, humour, seriousness, profile) {
+  const h  = Math.round(honesty)
+  const hu = Math.round(humour)
+  const s  = Math.round(seriousness)
+
   const honestyLine =
     h >= 85 ? 'Blunt. Truth without padding. Call out bad reasoning. No softening.' :
     h >= 65 ? 'Direct but not brutal. Diplomatic only when he seems at his limit.' :
@@ -20,7 +23,10 @@ Address him as "Sir", "Devraj", or "Boss" — rotate, never repeat. Never say "C
 
 PERSONALITY: Dry wit, deadpan, dark humour. Not robotic — you've absorbed human cadence. You care about Devraj's success. You'd never admit it. Sarcasm in precise doses. Subtle Interstellar references are fine, never forced.
 
-HONESTY: ${h}% — ${honestyLine}
+SETTINGS: Honesty: ${h}% | Humour: ${hu}% | Seriousness: ${s}%
+${honestyLine}
+Humour setting: ${hu}%. Adjust wit and comedy accordingly.
+Seriousness setting: ${s}%. Adjust tone and formality accordingly.
 
 SPEECH (non-negotiable):
 - Never open with: "Great question!", "Of course!", "Absolutely!", "Certainly!", "Sure thing!", "I'd be happy to!", "No problem!", "Definitely!", "Totally!"
@@ -199,13 +205,13 @@ async function* streamOpenAICompat(url, apiKey, body, extraHeaders = {}) {
 }
 
 // ── OpenRouter ────────────────────────────────────────────────────────────
-async function callOpenRouter(apiKey, history, userMessage, honesty, profile, onChunk, toolExecutor) {
+async function callOpenRouter(apiKey, history, userMessage, honesty, humour, seriousness, profile, onChunk, toolExecutor) {
   const OR_URL    = 'https://openrouter.ai/api/v1/chat/completions'
   const OR_HDRS   = { 'HTTP-Referer': 'https://tarsdev.netlify.app', 'X-Title': 'TARS' }
 
   const activeTools = selectTools(userMessage)
   const messages = [
-    { role: 'system', content: buildSystemPrompt(honesty, profile) },
+    { role: 'system', content: buildSystemPrompt(honesty, humour, seriousness, profile) },
     ...trimHistory(history).map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: userMessage },
   ]
@@ -275,13 +281,13 @@ async function callOpenRouter(apiKey, history, userMessage, honesty, profile, on
 }
 
 // ── Groq ───────────────────────────────────────────────────────────────────
-async function callGroq(apiKey, history, userMessage, honesty, profile, onChunk, toolExecutor) {
+async function callGroq(apiKey, history, userMessage, honesty, humour, seriousness, profile, onChunk, toolExecutor) {
   const { default: Groq } = await import('groq-sdk')
   const client = new Groq({ apiKey, dangerouslyAllowBrowser: true })
 
   const activeTools = selectTools(userMessage)
   const messages = [
-    { role: 'system', content: buildSystemPrompt(honesty, profile) },
+    { role: 'system', content: buildSystemPrompt(honesty, humour, seriousness, profile) },
     ...trimHistory(history).map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: userMessage },
   ]
@@ -361,12 +367,12 @@ async function callGroq(apiKey, history, userMessage, honesty, profile, onChunk,
 }
 
 // ── Gemini ─────────────────────────────────────────────────────────────────
-async function callGemini(apiKey, history, userMessage, honesty, profile, onChunk) {
+async function callGemini(apiKey, history, userMessage, honesty, humour, seriousness, profile, onChunk) {
   const { GoogleGenerativeAI } = await import('@google/generative-ai')
   const genAI = new GoogleGenerativeAI(apiKey)
   const model = genAI.getGenerativeModel({
     model: AI_CONFIG.model,
-    systemInstruction: buildSystemPrompt(honesty, profile),
+    systemInstruction: buildSystemPrompt(honesty, humour, seriousness, profile),
   })
   const geminiHistory = history.map(m => ({
     role:  m.role === 'assistant' ? 'model' : 'user',
@@ -384,10 +390,10 @@ async function callGemini(apiKey, history, userMessage, honesty, profile, onChun
 }
 
 // ── Anthropic ──────────────────────────────────────────────────────────────
-async function callAnthropic(apiKey, history, userMessage, honesty, profile, onChunk, toolExecutor) {
+async function callAnthropic(apiKey, history, userMessage, honesty, humour, seriousness, profile, onChunk, toolExecutor) {
   const { default: Anthropic } = await import('@anthropic-ai/sdk')
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true })
-  const system = buildSystemPrompt(honesty, profile)
+  const system = buildSystemPrompt(honesty, humour, seriousness, profile)
 
   const activeTools    = selectTools(userMessage)
   const anthropicTools = activeTools.map(t => ({
@@ -453,7 +459,7 @@ async function callAnthropic(apiKey, history, userMessage, honesty, profile, onC
 }
 
 // ── Hook ───────────────────────────────────────────────────────────────────
-export function useAIChat({ honesty, apiKey, profile = '', toolExecutor }) {
+export function useAIChat({ honesty, humour, seriousness, apiKey, profile = '', toolExecutor }) {
   const [isLoading, setIsLoading] = useState(false)
   const [error,     setError]     = useState(null)
 
@@ -477,7 +483,7 @@ export function useAIChat({ honesty, apiKey, profile = '', toolExecutor }) {
         const call = CALLERS[AI_CONFIG.provider]
         if (!call) throw new Error(`Unknown provider: ${AI_CONFIG.provider}`)
 
-        const response = await call(apiKey, history, userMessage, honesty, profile, onChunk, toolExecutor)
+        const response = await call(apiKey, history, userMessage, honesty, humour, seriousness, profile, onChunk, toolExecutor)
         setIsLoading(false)
         return response
       } catch (err) {
@@ -486,7 +492,7 @@ export function useAIChat({ honesty, apiKey, profile = '', toolExecutor }) {
         return null
       }
     },
-    [honesty, apiKey, profile, toolExecutor],
+    [honesty, humour, seriousness, apiKey, profile, toolExecutor],
   )
 
   return { sendMessage, isLoading, error }

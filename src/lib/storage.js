@@ -2,11 +2,13 @@
 // errors never crash the app.
 
 const K = {
-  messages: 'tars_messages',
-  honesty:  'tars_honesty',
-  apiKey:   'tars_api_key',
-  gToken:   'tars_g_token',
-  gExpiry:  'tars_g_expiry',
+  messages:    'tars_messages',
+  honesty:     'tars_honesty',
+  humour:      'tars_humour',
+  seriousness: 'tars_seriousness',
+  apiKey:      'tars_api_key',
+  gToken:      'tars_g_token',
+  gExpiry:     'tars_g_expiry',
 }
 
 // ── Messages ───────────────────────────────────────────────────────────────
@@ -41,6 +43,34 @@ export function loadHonesty(def = 90) {
     if (raw === null) return def
     const n = parseInt(raw, 10)
     return isNaN(n) ? def : Math.max(10, Math.min(100, n))
+  } catch { return def }
+}
+
+// ── Humour slider ──────────────────────────────────────────────────────────
+export function saveHumour(val) {
+  try { localStorage.setItem(K.humour, String(val)) } catch {}
+}
+
+export function loadHumour(def = 60) {
+  try {
+    const raw = localStorage.getItem(K.humour)
+    if (raw === null) return def
+    const n = parseInt(raw, 10)
+    return isNaN(n) ? def : Math.max(0, Math.min(100, n))
+  } catch { return def }
+}
+
+// ── Seriousness slider ─────────────────────────────────────────────────────
+export function saveSeriousness(val) {
+  try { localStorage.setItem(K.seriousness, String(val)) } catch {}
+}
+
+export function loadSeriousness(def = 50) {
+  try {
+    const raw = localStorage.getItem(K.seriousness)
+    if (raw === null) return def
+    const n = parseInt(raw, 10)
+    return isNaN(n) ? def : Math.max(0, Math.min(100, n))
   } catch { return def }
 }
 

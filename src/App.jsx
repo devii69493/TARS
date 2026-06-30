@@ -13,9 +13,11 @@ import { usePatternLearning } from './hooks/usePatternLearning'
 import { getApiKey } from './lib/aiConfig'
 import { loadProfile, saveProfile, clearProfile } from './lib/readmeProfile'
 import {
-  loadMessages, saveMessages,
-  loadHonesty,  saveHonesty,
-  loadApiKey,   saveApiKey,
+  loadMessages,     saveMessages,
+  loadHonesty,      saveHonesty,
+  loadHumour,       saveHumour,
+  loadSeriousness,  saveSeriousness,
+  loadApiKey,       saveApiKey,
 } from './lib/storage'
 
 const LISTEN_DELAY = 650
@@ -62,6 +64,8 @@ export default function App() {
   const savedMessages                      = loadMessages()
   const [messages,     setMessages]        = useState(() => hydrateMessages(savedMessages))
   const [honesty,      setHonesty]         = useState(() => loadHonesty())
+  const [humour,       setHumour]          = useState(() => loadHumour())
+  const [seriousness,  setSeriousness]     = useState(() => loadSeriousness())
   const [apiKey,       setApiKey]          = useState(() => loadApiKey() || getApiKey() || '')
 
   // ── Ephemeral UI state ─────────────────────────────────────────────────────
@@ -100,7 +104,7 @@ export default function App() {
   })
 
   const { executeTools } = useToolExecutor({ callAgent, onToolComplete: recordTool })
-  const { sendMessage, error } = useAIChat({ honesty, apiKey, profile, toolExecutor: executeTools })
+  const { sendMessage, error } = useAIChat({ honesty, humour, seriousness, apiKey, profile, toolExecutor: executeTools })
 
   const handleUnlock = useCallback(() => {
     unlock()
@@ -279,7 +283,9 @@ export default function App() {
   }
 
   // ── Settings handlers ───────────────────────────────────────────────────────
-  const handleHonestyChange = useCallback((val) => { setHonesty(val); saveHonesty(val) }, [])
+  const handleHonestyChange     = useCallback((val) => { setHonesty(val);     saveHonesty(val)     }, [])
+  const handleHumourChange      = useCallback((val) => { setHumour(val);      saveHumour(val)      }, [])
+  const handleSeriousnessChange = useCallback((val) => { setSeriousness(val); saveSeriousness(val) }, [])
   const handleApiKeyChange  = useCallback((key) => { setApiKey(key); saveApiKey(key); setShowSettings(false) }, [])
   const handleProfileLoad   = useCallback((text) => { saveProfile(text); setProfile(text) }, [])
   const handleProfileClear  = useCallback(() => { clearProfile(); setProfile('') }, [])
@@ -369,6 +375,10 @@ export default function App() {
         interimText={interimText}
         honesty={honesty}
         onHonestyChange={handleHonestyChange}
+        humour={humour}
+        onHumourChange={handleHumourChange}
+        seriousness={seriousness}
+        onSeriousnessChange={handleSeriousnessChange}
         error={error}
         onSubmit={handleTextSubmit}
         disabled={appState === 'processing' || appState === 'speaking'}

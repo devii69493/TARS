@@ -1,13 +1,24 @@
 import { useRef } from 'react'
 import { ChatLog } from './ChatLog'
 import { HonestySlider } from './HonestySlider'
+import { PersonalitySlider } from './PersonalitySlider'
 import { getProviderLabel, getKeyPlaceholder } from '../lib/aiConfig'
+
+const getHumourTag = (v) =>
+  v >= 85 ? 'FULL WIT' : v >= 65 ? 'DRY WIT' : v >= 35 ? 'MEASURED' : 'NONE'
+
+const getSeriousnessTag = (v) =>
+  v >= 85 ? 'MISSION-CRITICAL' : v >= 65 ? 'FORMAL' : v >= 35 ? 'BALANCED' : 'CASUAL'
 
 export function SidePanel({
   messages,
   interimText,
   honesty,
   onHonestyChange,
+  humour,
+  onHumourChange,
+  seriousness,
+  onSeriousnessChange,
   error,
   onSubmit,
   disabled,
@@ -181,9 +192,23 @@ export function SidePanel({
         </div>
       )}
 
-      {/* ── Honesty slider ───────────────────────────────────────────── */}
+      {/* ── Personality sliders ──────────────────────────────────────── */}
       <div className="side-honesty">
         <HonestySlider value={honesty} onChange={onHonestyChange} />
+        <PersonalitySlider
+          protocol="HUMOUR PROTOCOL"
+          value={humour}
+          onChange={onHumourChange}
+          markers={['NONE', 'DRY WIT', 'FULL WIT']}
+          getTag={getHumourTag}
+        />
+        <PersonalitySlider
+          protocol="SERIOUSNESS PROTOCOL"
+          value={seriousness}
+          onChange={onSeriousnessChange}
+          markers={['CASUAL', 'BALANCED', 'FORMAL']}
+          getTag={getSeriousnessTag}
+        />
       </div>
 
       {/* ── Chat log ─────────────────────────────────────────────────── */}
